@@ -1,0 +1,88 @@
+name: Сборка
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Собрать .ipa
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Версии инструментов
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Тесты ядра
+        run: swift test --package-path Packages/DayTrackCore
+
+      - name: Установить XcodeGen
+        run: brew install xcodegen
+
+      - name: Создать проект
+        run: xcodegen generate
+
+      - name: Собрать приложение
+        run: |
+          xcodebuild build \
+            -quiet \
+            -project DayTrack.xcodeproj \
+            -scheme DayTrack \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      # Сборка идёт без подписи разработчика: приложение подписывает iloader при установке.
+      # Здесь ставится только временная подпись, чтобы внутри файла были записаны права
+      # (общая папка приложения и виджета), которые установщик должен сохранить.
+      - name: Упаковать .ipa
+        run: |
+          APP=build/Build/Products/Release-iphoneos/DayTrack.app
+          test -d "$APP/PlugIns/DayTrackWidgets.appex"
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          codesign --force --sign - \
+            --entitlements Config/DayTrackWidgets.entitlements \
+            out/Payload/DayTrack.app/PlugIns/DayTrackWidgets.appex
+          codesign --force --sign - \
+            --entitlements Config/DayTrack.entitlements \
+            out/Payload/DayTrack.app
+          (cd out && zip -qry DayTrack.ipa Payload)
+          ls -lh out/DayTrack.ipa
+
+      - name: Сохранить .ipa в результатах сборки
+        uses: actions/upload-artifact@v4
+        with:
+          name: DayTrack-${{ github.run_number }}
+          path: out/DayTrack.ipa
+          if-no-files-found: error
+
+      - name: Опубликовать в Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CHANGE=$(git log -1 --pretty=%s)
+          gh release create "build-${{ github.run_number }}" out/DayTrack.ipa \
+            --target "${{ github.sha }}" \
+            --title "DayTrack, сборка ${{ github.run_number }}" \
+            --notes "Скачай файл DayTrack.ipa ниже и установи через iloader. Инструкция: docs/INSTALL.md
+
+          Последнее изменение: ${CHANGE}"
