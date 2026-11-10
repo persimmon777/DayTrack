@@ -1,15 +1,23 @@
 name: Сборка
 
+# Каждая отправка кода собирается и проверяется тестами.
+# В Releases сборка публикуется только при ручном запуске или если в сообщении
+# коммита есть пометка [release]: промежуточные сборки туда не попадают.
 on:
   push:
     branches: ["**"]
   workflow_dispatch:
+    inputs:
+      notes:
+        description: "Что нового в сборке"
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -76,13 +84,15 @@ jobs:
           if-no-files-found: error
 
       - name: Опубликовать в Releases
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[release]')
         env:
           GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ inputs.notes }}
         run: |
-          CHANGE=$(git log -1 --pretty=%s)
+          if [ -z "$NOTES" ]; then NOTES=$(git log -1 --pretty=%s); fi
           gh release create "build-${{ github.run_number }}" out/DayTrack.ipa \
             --target "${{ github.sha }}" \
             --title "DayTrack, сборка ${{ github.run_number }}" \
             --notes "Скачай файл DayTrack.ipa ниже и установи через iloader. Инструкция: docs/INSTALL.md
 
-          Последнее изменение: ${CHANGE}"
+          ${NOTES}"

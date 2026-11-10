@@ -34,6 +34,7 @@ struct InstallCheckView: View {
             }
         }
         .navigationTitle("Проверка установки")
+        .navigationBarTitleDisplayMode(.inline)
         .task { await model.refresh() }
         .refreshable { await model.refresh() }
         .onChange(of: scenePhase) { _, phase in

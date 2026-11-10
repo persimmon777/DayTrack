@@ -1,14 +1,11 @@
 import SwiftUI
 
-/// Четыре вкладки приложения. На этапе 0 вкладка «Сегодня» занята проверкой
-/// установки, остальные пока пустые.
+/// Четыре вкладки приложения. «Фокусы» и «Аналитика» появятся на этапе 2.
 struct RootView: View {
     var body: some View {
         TabView {
-            NavigationStack {
-                InstallCheckView()
-            }
-            .tabItem { Label("Сегодня", systemImage: "calendar.day.timeline.left") }
+            TodayView()
+                .tabItem { Label("Сегодня", systemImage: "calendar.day.timeline.left") }
 
             PlaceholderTab(
                 title: "Фокусы",
@@ -24,12 +21,8 @@ struct RootView: View {
             )
             .tabItem { Label("Аналитика", systemImage: "chart.bar.xaxis") }
 
-            PlaceholderTab(
-                title: "Настройки",
-                systemImage: "gearshape",
-                note: "Категории, расписание и резервные копии появятся на этапе 1."
-            )
-            .tabItem { Label("Настройки", systemImage: "gearshape") }
+            SettingsView()
+                .tabItem { Label("Настройки", systemImage: "gearshape") }
         }
     }
 }
