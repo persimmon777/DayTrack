@@ -63,6 +63,11 @@ public struct DayComparison: Equatable, Sendable {
     /// Минуты дел вне плана.
     public var unplannedMinutes: Int
 
+    /// Сравнение для дня без плана и без факта.
+    public static let empty = DayComparison(
+        blocks: [], plannedMinutes: 0, creditedMinutes: 0, unplannedMinutes: 0
+    )
+
     /// Доля выполнения плана от 0 до 1. `nil`, если в плане нет времени.
     public var completion: Double? {
         plannedMinutes > 0 ? Double(creditedMinutes) / Double(plannedMinutes) : nil

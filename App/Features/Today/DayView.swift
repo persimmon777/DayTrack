@@ -108,6 +108,7 @@ struct DayView: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 24)
             }
+            .scrollDismissesKeyboard(.interactively)
             .task {
                 // Шкала длинная, поэтому экран открывается на нужном часе.
                 try? await Task.sleep(for: .milliseconds(150))

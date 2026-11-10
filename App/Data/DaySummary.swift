@@ -13,7 +13,7 @@ struct DaySummary {
 
     init(day: Day?, now: Date) {
         guard let day else {
-            current = DayComparison(blocks: [], plannedMinutes: 0, creditedMinutes: 0, unplannedMinutes: 0)
+            current = .empty
             baseline = nil
             planWasEdited = false
             return

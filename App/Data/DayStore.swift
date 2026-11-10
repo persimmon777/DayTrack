@@ -171,14 +171,16 @@ struct DayStore {
     // MARK: Факт
 
     /// Вносит запись факта. Первая запись означает, что день начался, поэтому
-    /// план фиксируется, если этого ещё не сделали.
+    /// план фиксируется, если этого ещё не сделали. Пустой план не фиксируется:
+    /// иначе факт, внесённый утром до планирования, закрыл бы возможность
+    /// спокойно составить план.
     @discardableResult
     func addFact(
         dayKey: Int, block: PlannedBlock?, title: String, category: ActivityCategory?,
         start: Date, end: Date, reason: DeviationReason?, note: String
     ) -> FactEntry {
         let day = ensureDay(forKey: dayKey)
-        if !day.isLocked { lock(day) }
+        if !day.isLocked, !day.blocks.isEmpty { lock(day) }
 
         let fact = FactEntry(title: title, start: start, end: end, note: note)
         context.insert(fact)
