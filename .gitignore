@@ -1,0 +1,14 @@
+# Проект создаётся XcodeGen при сборке
+DayTrack.xcodeproj/
+Config/*-Info.plist
+
+# Результаты сборки
+build/
+out/
+.build/
+.swiftpm/
+DerivedData/
+*.ipa
+
+.DS_Store
+xcuserdata/
