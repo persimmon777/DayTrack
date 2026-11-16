@@ -133,3 +133,22 @@ struct FloatingAddButton: View {
         .padding(20)
     }
 }
+
+/// Круглая кнопка «+», открывающая меню действий.
+struct FloatingAddMenu<MenuContent: View>: View {
+    let label: String
+    @ViewBuilder let content: () -> MenuContent
+
+    var body: some View {
+        Menu(content: content) {
+            Image(systemName: "plus")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(Circle().fill(Color.accentColor))
+                .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+        }
+        .accessibilityLabel(label)
+        .padding(20)
+    }
+}

@@ -22,6 +22,8 @@ struct BlockEditorSheet: View {
     @State private var start: Date
     @State private var end: Date
     @State private var note: String
+    /// День блока. Новый блок можно сразу поставить на любой день.
+    @State private var dayDate: Date
     @State private var isConfirmingDelete = false
     /// Пока категорию не выбрали вручную, она подбирается по ключевым словам названия.
     @State private var categoryChosenByUser: Bool
@@ -38,6 +40,7 @@ struct BlockEditorSheet: View {
         self.mode = mode
         self.categories = categories
         self.onFinish = onFinish
+        _dayDate = State(initialValue: DayClock.app.calendarDate(forKey: dayKey) ?? .now)
 
         switch mode {
         case .new(let start):
@@ -68,9 +71,14 @@ struct BlockEditorSheet: View {
         categories.first { $0.uuid == categoryID }
     }
 
+    /// День, в который попадёт блок.
+    private var targetDayKey: Int {
+        isNew ? clock.key(for: dayDate) : dayKey
+    }
+
     /// Время из полей формы, приведённое к выбранному дню.
     private var resolvedStart: Date {
-        clock.resolve(timeOf: start, inDay: dayKey) ?? start
+        clock.resolve(timeOf: start, inDay: targetDayKey) ?? start
     }
 
     private var resolvedEnd: Date {
@@ -101,6 +109,9 @@ struct BlockEditorSheet: View {
                 }
 
                 Section {
+                    if isNew {
+                        DatePicker("День", selection: $dayDate, displayedComponents: .date)
+                    }
                     DatePicker("Начало", selection: $start, displayedComponents: .hourAndMinute)
                     DatePicker("Конец", selection: $end, displayedComponents: .hourAndMinute)
                     DurationChips { minutes in
@@ -113,8 +124,10 @@ struct BlockEditorSheet: View {
                         )
                     )
                 } footer: {
-                    if let window = clock.window(forKey: dayKey), resolvedEnd > window.end {
+                    if let window = clock.window(forKey: targetDayKey), resolvedEnd > window.end {
                         Text("Блок заканчивается уже на следующий день.")
+                    } else if targetDayKey != dayKey {
+                        Text("Блок попадёт в план другого дня. Так можно планировать заранее: например, приём у врача через неделю.")
                     }
                 }
 
@@ -172,7 +185,7 @@ struct BlockEditorSheet: View {
         switch mode {
         case .new:
             store.addBlock(
-                dayKey: dayKey, title: resolvedTitle, category: category,
+                dayKey: targetDayKey, title: resolvedTitle, category: category,
                 start: resolvedStart, end: resolvedEnd, note: note
             )
         case .edit(let block):

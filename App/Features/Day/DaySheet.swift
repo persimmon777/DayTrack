@@ -12,6 +12,8 @@ struct DaySheet: Identifiable {
         /// время берётся из блока плана.
         case newFact(block: PlannedBlock?, start: Date?, end: Date?)
         case editFact(FactEntry)
+        /// Новое (`nil`) или существующее напоминание.
+        case reminder(Reminder?)
     }
 
     // Отдельный идентификатор, не зависящий от записи: к удалённой записи
@@ -75,6 +77,8 @@ struct DaySheetView: View {
             FactEditorSheet(dayKey: dayKey, mode: .edit(fact), categories: categories, blocks: blocks) { action in
                 if action == .delete { deleteAfterDismiss { $0.deleteFact(fact) } }
             }
+        case .reminder(let reminder):
+            ReminderEditorSheet(reminder: reminder, dayKey: dayKey)
         }
     }
 

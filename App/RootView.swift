@@ -4,6 +4,7 @@ import SwiftUI
 /// Вкладки приложения. Выбранный день общий для «Плана», «Факта» и «Аналитики».
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var context
 
     @State private var dayKey = DayClock.app.key(for: .now)
     /// Какой день был «сегодня», когда приложение было открыто в прошлый раз.
@@ -39,6 +40,8 @@ struct RootView: View {
                 dayKey = today
             }
             lastTodayKey = today
+            // Уведомления о напоминаниях ставятся на ближайшие дни, поэтому список обновляется.
+            Task { await ReminderScheduler.reschedule(context: context) }
         }
     }
 }

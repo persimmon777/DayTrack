@@ -198,3 +198,44 @@ enum PlanChangeKind: String {
     case removed
     case edited
 }
+
+/// Напоминание или событие на день: день рождения, приём у врача, дедлайн.
+/// Может быть на весь день или на время и повторяться.
+@Model
+final class Reminder {
+    var uuid: UUID = UUID()
+    var title: String = ""
+    var note: String = ""
+    /// Первый (или единственный) день, ключ вида 20261120.
+    var firstDayKey: Int = 0
+    /// Время в минутах от полуночи. `nil` — на весь день.
+    var minuteOfDay: Int?
+    var repeatRaw: String = RepeatRule.none.rawValue
+    /// Присылать уведомление.
+    var notify: Bool = true
+    /// За сколько дней предупредить (0 — в тот же день).
+    var leadDays: Int = 0
+    var createdAt: Date = Date.distantPast
+
+    init(title: String, firstDayKey: Int) {
+        self.uuid = UUID()
+        self.title = title
+        self.firstDayKey = firstDayKey
+        self.createdAt = .now
+    }
+
+    var repeatRule: RepeatRule {
+        get { RepeatRule(rawValue: repeatRaw) ?? .none }
+        set { repeatRaw = newValue.rawValue }
+    }
+
+    func occurs(onDayKey key: Int, calendar: Calendar = .current) -> Bool {
+        Recurrence.occurs(on: key, first: firstDayKey, rule: repeatRule, calendar: calendar)
+    }
+
+    /// «15:00» или «весь день».
+    var timeText: String {
+        guard let minuteOfDay else { return "весь день" }
+        return String(format: "%02d:%02d", minuteOfDay / 60, minuteOfDay % 60)
+    }
+}

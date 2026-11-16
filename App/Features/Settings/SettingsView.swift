@@ -17,6 +17,11 @@ struct SettingsView: View {
                     } label: {
                         Label("Категории", systemImage: "square.grid.2x2")
                     }
+                    NavigationLink {
+                        RemindersListView()
+                    } label: {
+                        Label("Напоминания", systemImage: "bell.badge")
+                    }
                 }
 
                 Section("Служебное") {

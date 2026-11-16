@@ -11,6 +11,7 @@ enum AppDatabase {
         TaskItem.self,
         FactEntry.self,
         PlanChange.self,
+        Reminder.self,
     ]
 
     /// База хранится в папке самого приложения. Новые поля и сущности

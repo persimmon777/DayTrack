@@ -9,6 +9,7 @@ struct PlanView: View {
     @Environment(\.modelContext) private var context
     @Query private var days: [Day]
     @Query private var previousDays: [Day]
+    @Query(sort: \Reminder.firstDayKey) private var reminders: [Reminder]
 
     @State private var sheet: DaySheet?
 
@@ -30,8 +31,17 @@ struct PlanView: View {
             content(now: timeline.date)
         }
         .overlay(alignment: .bottomTrailing) {
-            FloatingAddButton(label: "Добавить блок плана") {
-                sheet = DaySheet(kind: .newBlock(start: defaultStart()))
+            FloatingAddMenu(label: "Добавить") {
+                Button {
+                    sheet = DaySheet(kind: .newBlock(start: defaultStart()))
+                } label: {
+                    Label("Блок плана", systemImage: "rectangle.stack.badge.plus")
+                }
+                Button {
+                    sheet = DaySheet(kind: .reminder(nil))
+                } label: {
+                    Label("Напоминание или событие", systemImage: "bell.badge")
+                }
             }
         }
         .sheet(item: $sheet) { item in
@@ -52,6 +62,12 @@ struct PlanView: View {
                         canUnlock: day.map { store.canUnlock($0) } ?? false,
                         onLock: { if let day { store.lock(day) } },
                         onUnlock: { if let day { store.unlock(day) } }
+                    )
+
+                    RemindersCard(
+                        today: dayReminders,
+                        upcoming: isToday ? upcomingReminders : [],
+                        onTap: { sheet = DaySheet(kind: .reminder($0)) }
                     )
 
                     TasksCard(
@@ -105,6 +121,29 @@ struct PlanView: View {
         }
     }
 
+    /// Напоминания этого дня: сначала на весь день, потом по времени.
+    private var dayReminders: [Reminder] {
+        reminders
+            .filter { $0.occurs(onDayKey: dayKey) }
+            .sorted { ($0.minuteOfDay ?? -1) < ($1.minuteOfDay ?? -1) }
+    }
+
+    /// Напоминания на ближайшую неделю после сегодняшнего дня.
+    private var upcomingReminders: [(dayKey: Int, reminder: Reminder)] {
+        let calendar = Calendar.current
+        let from = Recurrence.key(dayKey, addingDays: 1, calendar: calendar)
+        let through = Recurrence.key(dayKey, addingDays: 7, calendar: calendar)
+        var result: [(dayKey: Int, reminder: Reminder)] = []
+        for reminder in reminders {
+            let days = Recurrence.occurrences(
+                first: reminder.firstDayKey, rule: reminder.repeatRule,
+                from: from, through: through, calendar: calendar
+            )
+            result += days.map { ($0, reminder) }
+        }
+        return result.sorted { ($0.dayKey, $0.reminder.minuteOfDay ?? -1) < ($1.dayKey, $1.reminder.minuteOfDay ?? -1) }
+    }
+
     /// Сколько времени запланировано на каждую категорию, по убыванию.
     private var categoryBreakdown: [CategoryMinutes] {
         var totals: [String: CategoryMinutes] = [:]
@@ -140,5 +179,48 @@ struct PlanView: View {
             if let date = clock.resolve(hour: hour, minute: 0, inDay: dayKey) { return date }
         }
         return clock.resolve(hour: 9, minute: 0, inDay: dayKey) ?? .now
+    }
+}
+
+/// Напоминания дня и ближайшие события.
+private struct RemindersCard: View {
+    let today: [Reminder]
+    let upcoming: [(dayKey: Int, reminder: Reminder)]
+    let onTap: (Reminder) -> Void
+
+    var body: some View {
+        if !today.isEmpty || !upcoming.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                if !today.isEmpty {
+                    Text("Напоминания")
+                        .font(.subheadline.weight(.semibold))
+                    ForEach(today) { reminder in
+                        Button { onTap(reminder) } label: { ReminderRow(reminder: reminder) }
+                            .foregroundStyle(.primary)
+                    }
+                }
+                if !upcoming.isEmpty {
+                    Text("Скоро")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.top, today.isEmpty ? 0 : 4)
+                    ForEach(Array(upcoming.enumerated()), id: \.offset) { _, item in
+                        Button { onTap(item.reminder) } label: {
+                            ReminderRow(reminder: item.reminder, dateText: dateText(item.dayKey))
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func dateText(_ key: Int) -> String {
+        let calendar = Calendar.current
+        let today = Recurrence.keyOf(.now, calendar: calendar)
+        if key == Recurrence.key(today, addingDays: 1, calendar: calendar) { return "завтра" }
+        return Recurrence.date(forKey: key, calendar: calendar).map(Format.day) ?? ""
     }
 }
