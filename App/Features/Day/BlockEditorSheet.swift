@@ -23,6 +23,7 @@ struct BlockEditorSheet: View {
     @State private var end: Date
     @State private var note: String
     @State private var focusID: UUID?
+    @State private var isFrog: Bool
     /// День блока. Новый блок можно сразу поставить на любой день.
     @State private var dayDate: Date
     @State private var isConfirmingDelete = false
@@ -51,6 +52,7 @@ struct BlockEditorSheet: View {
             _end = State(initialValue: start.addingTimeInterval(3600))
             _note = State(initialValue: "")
             _focusID = State(initialValue: nil)
+            _isFrog = State(initialValue: false)
             _categoryChosenByUser = State(initialValue: false)
             isLockedDay = false
         case .edit(let block):
@@ -60,6 +62,7 @@ struct BlockEditorSheet: View {
             _end = State(initialValue: block.end)
             _note = State(initialValue: block.note)
             _focusID = State(initialValue: block.focusUUID)
+            _isFrog = State(initialValue: block.isFrog)
             _categoryChosenByUser = State(initialValue: block.category != nil)
             isLockedDay = block.day?.isLocked ?? false
         }
@@ -136,6 +139,11 @@ struct BlockEditorSheet: View {
 
                 Section {
                     FocusPicker(dayKey: targetDayKey, selection: $focusID)
+                    Toggle(isOn: $isFrog) {
+                        Label("Лягушка дня", systemImage: "tortoise")
+                    }
+                } footer: {
+                    Text("Лягушка — самое сложное или неприятное дело дня. Его лучше ставить первым, пока есть силы.")
                 }
 
                 Section("Заметка") {
@@ -196,9 +204,10 @@ struct BlockEditorSheet: View {
                 start: resolvedStart, end: resolvedEnd, note: note
             )
             block.focusUUID = focusID
-            store.save()
+            store.setFrog(block, isFrog)
         case .edit(let block):
             block.focusUUID = focusID
+            store.setFrog(block, isFrog)
             store.updateBlock(
                 block, title: resolvedTitle, category: category,
                 start: resolvedStart, end: resolvedEnd, note: note

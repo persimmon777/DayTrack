@@ -106,7 +106,13 @@ struct PlanView: View {
                 LazyVStack(alignment: .leading, spacing: 12, pinnedViews: [.sectionHeaders]) {
                     RestBanner()
 
+                    if isToday { StreakLine() }
+
                     FocusStrip(dayKey: dayKey)
+
+                    if dayKey >= clock.key(for: now) {
+                        AdviceCard(dayKey: dayKey, now: now)
+                    }
 
                     PlanStatusCard(
                         day: day,

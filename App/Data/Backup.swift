@@ -41,7 +41,7 @@ struct BackupSnapshot: Codable {
     struct BlockDTO: Codable {
         var uuid: UUID, title: String, start: Date, end: Date, note: String
         var baselineStart: Date?, baselineEnd: Date?, addedAfterLock: Bool, removedAt: Date?
-        var missReasonRaw: String?, sourceRaw: String?, categoryUUID: UUID?, focusUUID: UUID?
+        var missReasonRaw: String?, sourceRaw: String?, categoryUUID: UUID?, focusUUID: UUID?, isFrog: Bool?
     }
     struct TaskDTO: Codable {
         var uuid: UUID, title: String, estimateMinutes: Int, isDone: Bool, sortOrder: Int
@@ -100,7 +100,7 @@ enum BackupService {
                               baselineStart: $0.baselineStart, baselineEnd: $0.baselineEnd,
                               addedAfterLock: $0.addedAfterLock, removedAt: $0.removedAt,
                               missReasonRaw: $0.missReasonRaw, sourceRaw: $0.sourceRaw,
-                              categoryUUID: $0.category?.uuid, focusUUID: $0.focusUUID)
+                              categoryUUID: $0.category?.uuid, focusUUID: $0.focusUUID, isFrog: $0.isFrog)
                     },
                     tasks: day.tasks.map {
                         .init(uuid: $0.uuid, title: $0.title, estimateMinutes: $0.estimateMinutes, isDone: $0.isDone,
@@ -194,6 +194,7 @@ enum BackupService {
                 block.missReasonRaw = item.missReasonRaw
                 block.sourceRaw = item.sourceRaw ?? PlannedBlock.Source.manual.rawValue
                 block.focusUUID = item.focusUUID
+                block.isFrog = item.isFrog ?? false
                 context.insert(block)
                 block.day = day
                 block.category = item.categoryUUID.flatMap { categories[$0] }

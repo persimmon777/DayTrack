@@ -99,6 +99,8 @@ final class PlannedBlock {
     var sourceRaw: String = Source.manual.rawValue
     /// Фокус недели или месяца, к которому относится блок.
     var focusUUID: UUID?
+    /// «Лягушка» — самое сложное дело дня.
+    var isFrog: Bool = false
 
     enum Source: String {
         case manual

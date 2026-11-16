@@ -17,7 +17,7 @@ struct DayTrackApp: App {
         WindowGroup {
             switch database {
             case .success(let container):
-                RootView()
+                ThemedRoot()
                     .modelContainer(container)
                     .environment(\.locale, Format.locale)
             case .failure(let error):
@@ -38,5 +38,23 @@ private struct DatabaseErrorView: View {
         } description: {
             Text("Данные не удалены. Не удаляй приложение: пришли этот текст, и проблему можно будет исправить обновлением.\n\n\(String(describing: error))")
         }
+    }
+}
+
+/// Корень с выбранной темой и первым запуском.
+private struct ThemedRoot: View {
+    @AppStorage("theme") private var themeRaw = AppTheme.system.rawValue
+    @AppStorage("onboarding.done") private var onboardingDone = false
+
+    private var theme: AppTheme { AppTheme(rawValue: themeRaw) ?? .system }
+
+    var body: some View {
+        RootView()
+            .tint(theme.accent)
+            .preferredColorScheme(theme.colorScheme)
+            .sheet(isPresented: Binding(get: { !onboardingDone }, set: { if !$0 { onboardingDone = true } })) {
+                OnboardingView { onboardingDone = true }
+                    .tint(theme.accent)
+            }
     }
 }

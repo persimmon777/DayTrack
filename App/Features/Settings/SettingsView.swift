@@ -34,6 +34,19 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Подсказки и вид") {
+                    NavigationLink {
+                        AdvisorSettingsView()
+                    } label: {
+                        Label("Советчик", systemImage: "lightbulb")
+                    }
+                    NavigationLink {
+                        ThemeSettingsView()
+                    } label: {
+                        Label("Оформление", systemImage: "paintpalette")
+                    }
+                }
+
                 Section("Напоминания и виджет") {
                     NavigationLink {
                         NotificationSettingsView()

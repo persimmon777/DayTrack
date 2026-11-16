@@ -158,6 +158,15 @@ struct DayStore {
         save()
     }
 
+    /// Лягушка в дне одна: отметка снимается с остальных блоков.
+    func setFrog(_ block: PlannedBlock, _ isFrog: Bool) {
+        if isFrog {
+            for other in block.day?.blocks ?? [] where other.uuid != block.uuid { other.isFrog = false }
+        }
+        block.isFrog = isFrog
+        save()
+    }
+
     func markMissed(_ block: PlannedBlock, reason: DeviationReason?) {
         block.missReason = reason
         save()

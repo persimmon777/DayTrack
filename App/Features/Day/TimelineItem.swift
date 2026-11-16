@@ -25,6 +25,7 @@ extension TimelineItem {
             color: Color(hex: block.category?.colorHex ?? "7F8C8D"),
             isGhost: isGhost
         )
+        if block.isFrog, !isGhost { item.title = "🐸 " + item.title }
         guard !isGhost, let result else { return item }
         switch result.status {
         case .done:
