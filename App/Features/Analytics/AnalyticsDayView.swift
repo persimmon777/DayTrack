@@ -8,6 +8,8 @@ struct AnalyticsDayView: View {
 
     @Query private var days: [Day]
     @Query private var previousDays: [Day]
+    @Query private var marks: [EnergyMark]
+    @Query private var reflections: [Reflection]
 
     @State private var sheet: DaySheet?
 
@@ -18,6 +20,8 @@ struct AnalyticsDayView: View {
         let previousKey = DayClock.app.key(byAdding: -1, to: dayKey)
         _days = Query(filter: #Predicate<Day> { $0.key == dayKey })
         _previousDays = Query(filter: #Predicate<Day> { $0.key == previousKey })
+        _marks = Query(filter: #Predicate<EnergyMark> { $0.dayKey == dayKey }, sort: \EnergyMark.at)
+        _reflections = Query(filter: #Predicate<Reflection> { $0.dayKey == dayKey })
     }
 
     private var day: Day? { days.first }
@@ -73,6 +77,12 @@ struct AnalyticsDayView: View {
                     if let day, !day.changes.isEmpty {
                         PlanChangesCard(changes: day.changes.sorted { $0.at < $1.at })
                     }
+
+                    DayExtrasCard(
+                        marks: marks,
+                        reflection: reflections.first,
+                        onOpenReflection: { sheet = DaySheet(kind: .reflection) }
+                    )
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 24)
@@ -101,5 +111,60 @@ struct AnalyticsDayView: View {
             .map { TimelineItem.fact($0, isGhost: true) }
         let own = (day?.facts ?? []).map { TimelineItem.fact($0) }
         return carried + own
+    }
+}
+
+/// Энергия и вечерний разбор дня.
+private struct DayExtrasCard: View {
+    let marks: [EnergyMark]
+    let reflection: Reflection?
+    let onOpenReflection: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !marks.isEmpty {
+                Text("Энергия и настроение")
+                    .font(.subheadline.weight(.semibold))
+                ForEach(marks) { mark in
+                    HStack {
+                        Text(Format.time(mark.at)).monospacedDigit().foregroundStyle(.secondary)
+                        Spacer()
+                        Label("\(mark.energy)", systemImage: "bolt.fill")
+                        Label("\(mark.mood)", systemImage: "face.smiling").padding(.leading, 8)
+                    }
+                    .font(.footnote)
+                }
+            }
+
+            if let reflection, !reflection.isEmpty {
+                Text("Вечерний разбор")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.top, marks.isEmpty ? 0 : 4)
+                if !reflection.wentWell.isEmpty { line("Получилось", reflection.wentWell) }
+                if !reflection.hindered.isEmpty { line("Помешало", reflection.hindered) }
+                if !reflection.changeTomorrow.isEmpty { line("Изменю завтра", reflection.changeTomorrow) }
+                if reflection.rating > 0 {
+                    Text(String(repeating: "★", count: reflection.rating) + String(repeating: "☆", count: 5 - reflection.rating))
+                        .foregroundStyle(.yellow)
+                }
+                Button("Изменить разбор", action: onOpenReflection)
+                    .font(.footnote)
+            } else {
+                Button(action: onOpenReflection) {
+                    Label("Заполнить вечерний разбор", systemImage: "moon.stars")
+                }
+                .font(.subheadline)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func line(_ title: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(text).font(.footnote)
+        }
     }
 }

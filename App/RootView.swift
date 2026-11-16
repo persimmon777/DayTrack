@@ -21,7 +21,7 @@ struct RootView: View {
             FocusView()
                 .tabItem { Label("Фокусы", systemImage: "scope") }
 
-            DayPager(dayKey: $dayKey) { AnalyticsDayView(dayKey: $0) }
+            AnalyticsView(dayKey: $dayKey)
                 .tabItem { Label("Аналитика", systemImage: "chart.bar.xaxis") }
 
             SettingsView()

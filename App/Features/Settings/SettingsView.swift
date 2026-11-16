@@ -34,6 +34,14 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Аналитика") {
+                    NavigationLink {
+                        ReportPromptView()
+                    } label: {
+                        Label("Запрос для нейросети", systemImage: "text.bubble")
+                    }
+                }
+
                 Section("Данные") {
                     NavigationLink {
                         BackupView()
