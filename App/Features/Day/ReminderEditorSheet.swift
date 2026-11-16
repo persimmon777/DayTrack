@@ -146,24 +146,24 @@ struct ReminderEditorSheet: View {
         target.leadDays = notify ? leadDays : 0
         try? context.save()
 
-        let context = self.context
+        let modelContext = context
         let wantsNotifications = notify
         Task { @MainActor in
             if wantsNotifications { await ReminderScheduler.requestPermission() }
-            await ReminderScheduler.reschedule(context: context)
+            await ReminderScheduler.reschedule(context: modelContext)
         }
         dismiss()
     }
 
     private func delete() {
         guard let reminder else { return }
-        let context = self.context
+        let modelContext = context
         dismiss()
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
-            context.delete(reminder)
-            try? context.save()
-            await ReminderScheduler.reschedule(context: context)
+            modelContext.delete(reminder)
+            try? modelContext.save()
+            await ReminderScheduler.reschedule(context: modelContext)
         }
     }
 }
