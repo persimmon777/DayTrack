@@ -28,7 +28,15 @@ struct RootView: View {
                 .tabItem { Label("Настройки", systemImage: "gearshape") }
         }
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background {
+                // При сворачивании виджет и уведомления получают свежий план.
+                WidgetSync.refresh(context: context)
+                Task { await DailyNotifications.reschedule(context: context) }
+                return
+            }
             guard phase == .active else { return }
+            WidgetSync.refresh(context: context)
+            Task { await DailyNotifications.reschedule(context: context) }
             // Если приложение открыли на следующий день, а был выбран «сегодня»,
             // переходим на новый сегодняшний день.
             let today = DayClock.app.key(for: .now)

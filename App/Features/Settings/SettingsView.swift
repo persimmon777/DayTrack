@@ -34,6 +34,19 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Напоминания и виджет") {
+                    NavigationLink {
+                        NotificationSettingsView()
+                    } label: {
+                        Label("Уведомления", systemImage: "bell")
+                    }
+                    NavigationLink {
+                        BalanceTargetView()
+                    } label: {
+                        Label("Цель баланса", systemImage: "chart.pie")
+                    }
+                }
+
                 Section("Аналитика") {
                     NavigationLink {
                         ReportPromptView()

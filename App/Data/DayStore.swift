@@ -26,6 +26,7 @@ struct DayStore {
 
     func save() {
         try? context.save()
+        WidgetSync.refresh(context: context)
     }
 
     // MARK: Фиксация плана

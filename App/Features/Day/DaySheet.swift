@@ -17,6 +17,7 @@ struct DaySheet: Identifiable {
         case editTask(TaskItem)
         case energy
         case reflection
+        case restStart
     }
 
     // Отдельный идентификатор, не зависящий от записи: к удалённой записи
@@ -84,6 +85,8 @@ struct DaySheetView: View {
             ReminderEditorSheet(reminder: reminder, dayKey: dayKey)
         case .energy:
             EnergySheet(dayKey: dayKey)
+        case .restStart:
+            RestStartSheet(dayKey: dayKey)
         case .reflection:
             ReflectionSheet(dayKey: dayKey)
         case .editTask(let task):

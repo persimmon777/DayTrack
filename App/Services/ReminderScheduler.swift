@@ -10,7 +10,7 @@ import UserNotifications
 enum ReminderScheduler {
     private static let prefix = "reminder-"
     private static let horizonDays = 60
-    private static let maxScheduled = 50
+    private static let maxScheduled = 30
     /// Время уведомления для напоминаний на весь день.
     private static let allDayMinute = 9 * 60
 

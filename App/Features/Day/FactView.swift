@@ -72,6 +72,12 @@ struct FactView: View {
 
     var body: some View {
         List {
+            if RestTimer.isRunning || isToday {
+                RestBanner()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
             if !ownFacts.isEmpty {
                 Section {
                     summary
@@ -133,6 +139,11 @@ struct FactView: View {
             FloatingAddMenu(label: "Добавить") {
                 Button(action: addNext) {
                     Label("Запись факта", systemImage: "plus.circle")
+                }
+                Button {
+                    sheet = DaySheet(kind: .restStart)
+                } label: {
+                    Label("Начать отдых", systemImage: "cup.and.saucer")
                 }
                 Button {
                     sheet = DaySheet(kind: .energy)

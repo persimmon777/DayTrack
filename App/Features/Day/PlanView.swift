@@ -46,6 +46,11 @@ struct PlanView: View {
                 } label: {
                     Label("Напоминание или событие", systemImage: "bell.badge")
                 }
+                Button {
+                    sheet = DaySheet(kind: .restStart)
+                } label: {
+                    Label("Начать отдых", systemImage: "cup.and.saucer")
+                }
                 Divider()
                 Button {
                     let added = store.applySchedule(dayKey: dayKey)
@@ -99,6 +104,8 @@ struct PlanView: View {
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12, pinnedViews: [.sectionHeaders]) {
+                    RestBanner()
+
                     FocusStrip(dayKey: dayKey)
 
                     PlanStatusCard(
