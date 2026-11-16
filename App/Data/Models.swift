@@ -53,6 +53,8 @@ final class Day {
     var lockedAt: Date?
     /// Когда черновик плана меняли в последний раз.
     var planEditedAt: Date?
+    /// Расписание уже подставлено в этот день (повторно само не подставляется).
+    var scheduleApplied: Bool = false
 
     @Relationship(deleteRule: .cascade, inverse: \PlannedBlock.day)
     var blocks: [PlannedBlock] = []
@@ -93,6 +95,14 @@ final class PlannedBlock {
     var removedAt: Date?
     /// Причина, если блок отмечен несделанным.
     var missReasonRaw: String?
+    /// Откуда взялся блок: вручную, из расписания или из шаблона.
+    var sourceRaw: String = Source.manual.rawValue
+
+    enum Source: String {
+        case manual
+        case schedule
+        case template
+    }
 
     var day: Day?
     var category: ActivityCategory?
@@ -238,4 +248,70 @@ final class Reminder {
         guard let minuteOfDay else { return "весь день" }
         return String(format: "%02d:%02d", minuteOfDay / 60, minuteOfDay % 60)
     }
+}
+
+/// Правило расписания: каждое такое занятие подставляется в план нужного дня недели.
+@Model
+final class ScheduleRule {
+    var uuid: UUID = UUID()
+    var title: String = ""
+    var categoryUUID: UUID?
+    /// День недели по `Calendar`: 1 — воскресенье, 2 — понедельник, … 7 — суббота.
+    var weekday: Int = 2
+    var startMinute: Int = 9 * 60
+    /// Конец в минутах от полуночи. Меньше начала — значит, после полуночи.
+    var endMinute: Int = 10 * 60 + 30
+    var parityRaw: String = WeekParity.every.rawValue
+    var validFromKey: Int?
+    var validUntilKey: Int?
+    var isEnabled: Bool = true
+
+    init(title: String, weekday: Int) {
+        self.uuid = UUID()
+        self.title = title
+        self.weekday = weekday
+    }
+
+    var parity: WeekParity {
+        get { WeekParity(rawValue: parityRaw) ?? .every }
+        set { parityRaw = newValue.rawValue }
+    }
+
+    var data: ScheduleRuleData {
+        ScheduleRuleData(
+            weekday: weekday, parity: parity,
+            validFromKey: validFromKey, validUntilKey: validUntilKey, isEnabled: isEnabled
+        )
+    }
+}
+
+/// Шаблон дня: набор блоков без привязки к дате.
+@Model
+final class DayTemplate {
+    var uuid: UUID = UUID()
+    var name: String = ""
+    /// Блоки шаблона в JSON (см. `TemplateItem`).
+    var itemsJSON: String = "[]"
+    var createdAt: Date = Date.distantPast
+
+    init(name: String, items: [TemplateItem]) {
+        self.uuid = UUID()
+        self.name = name
+        self.createdAt = .now
+        self.items = items
+    }
+
+    var items: [TemplateItem] {
+        get { (try? JSONDecoder().decode([TemplateItem].self, from: Data(itemsJSON.utf8))) ?? [] }
+        set { itemsJSON = (try? String(decoding: JSONEncoder().encode(newValue), as: UTF8.self)) ?? "[]" }
+    }
+}
+
+/// Блок шаблона: название, категория и время в минутах от полуночи.
+struct TemplateItem: Codable, Hashable {
+    var title: String
+    var categoryUUID: UUID?
+    var startMinute: Int
+    /// Длительность в минутах.
+    var durationMinutes: Int
 }

@@ -18,6 +18,16 @@ struct SettingsView: View {
                         Label("Категории", systemImage: "square.grid.2x2")
                     }
                     NavigationLink {
+                        ScheduleView()
+                    } label: {
+                        Label("Расписание", systemImage: "calendar.badge.clock")
+                    }
+                    NavigationLink {
+                        TemplatesView()
+                    } label: {
+                        Label("Шаблоны дня", systemImage: "square.on.square")
+                    }
+                    NavigationLink {
                         RemindersListView()
                     } label: {
                         Label("Напоминания", systemImage: "bell.badge")

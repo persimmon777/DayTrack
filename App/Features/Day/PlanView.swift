@@ -10,8 +10,12 @@ struct PlanView: View {
     @Query private var days: [Day]
     @Query private var previousDays: [Day]
     @Query(sort: \Reminder.firstDayKey) private var reminders: [Reminder]
+    @Query(sort: \DayTemplate.createdAt) private var templates: [DayTemplate]
 
     @State private var sheet: DaySheet?
+    @State private var isNamingTemplate = false
+    @State private var templateName = ""
+    @State private var notice: String?
 
     private let clock = DayClock.app
 
@@ -42,7 +46,47 @@ struct PlanView: View {
                 } label: {
                     Label("Напоминание или событие", systemImage: "bell.badge")
                 }
+                Divider()
+                Button {
+                    let added = store.applySchedule(dayKey: dayKey)
+                    notice = added == 0
+                        ? "В расписании нет занятий на этот день, которых ещё нет в плане."
+                        : "Добавлено занятий из расписания: \(added)."
+                } label: {
+                    Label("Подставить расписание", systemImage: "calendar.badge.clock")
+                }
+                if !templates.isEmpty {
+                    Menu {
+                        ForEach(templates) { template in
+                            Button(template.name) { store.applyTemplate(template, dayKey: dayKey) }
+                        }
+                    } label: {
+                        Label("Применить шаблон", systemImage: "square.on.square")
+                    }
+                }
+                if !(day?.activeBlocks.isEmpty ?? true) {
+                    Button {
+                        templateName = ""
+                        isNamingTemplate = true
+                    } label: {
+                        Label("Сохранить день как шаблон", systemImage: "square.and.arrow.down")
+                    }
+                }
             }
+        }
+        .alert("Название шаблона", isPresented: $isNamingTemplate) {
+            TextField("Например: учебный день", text: $templateName)
+            Button("Отмена", role: .cancel) {}
+            Button("Сохранить") {
+                let name = templateName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let day, !name.isEmpty { store.saveTemplate(named: name, from: day) }
+            }
+        }
+        .alert(notice ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
+            Button("Понятно", role: .cancel) {}
+        }
+        .onAppear {
+            store.autoApplySchedule(dayKey: dayKey)
         }
         .sheet(item: $sheet) { item in
             DaySheetView(sheet: item, dayKey: dayKey) { sheet = $0 }
