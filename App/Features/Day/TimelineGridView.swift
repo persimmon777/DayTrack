@@ -1,8 +1,15 @@
 import DayTrackCore
 import SwiftUI
 
-/// Две шкалы времени рядом: слева план, справа факт.
-struct DualTimelineView: View {
+/// Колонка шкалы времени: блоки и действия по нажатию.
+struct TimelineColumn {
+    var items: [TimelineItem]
+    var onTapItem: ((UUID) -> Void)?
+    var onTapSpace: ((Date) -> Void)?
+}
+
+/// Шкала времени дня с одной или несколькими колонками рядом.
+struct TimelineGridView: View {
     static let hourHeight: CGFloat = 56
     static let gutter: CGFloat = 40
     static let columnGap: CGFloat = 6
@@ -11,14 +18,9 @@ struct DualTimelineView: View {
     static func hourAnchor(_ index: Int) -> String { "hour-\(index)" }
 
     let window: DateInterval
-    let planItems: [TimelineItem]
-    let factItems: [TimelineItem]
+    let columns: [TimelineColumn]
     /// Текущий момент. Передаётся только для сегодняшнего дня.
     let now: Date?
-    let onTapPlanItem: (UUID) -> Void
-    let onTapFactItem: (UUID) -> Void
-    let onTapPlanSpace: (Date) -> Void
-    let onTapFactSpace: (Date) -> Void
 
     private var hourCount: Int { max(1, Int((window.duration / 3600).rounded())) }
     private var totalHeight: CGFloat { CGFloat(hourCount) * Self.hourHeight }
@@ -27,11 +29,12 @@ struct DualTimelineView: View {
         ZStack(alignment: .topLeading) {
             hourGrid
             GeometryReader { geometry in
-                let columnWidth = max(0, (geometry.size.width - Self.gutter - Self.columnGap) / 2)
-                column(planItems, width: columnWidth, onTapItem: onTapPlanItem, onTapSpace: onTapPlanSpace)
-                    .offset(x: Self.gutter)
-                column(factItems, width: columnWidth, onTapItem: onTapFactItem, onTapSpace: onTapFactSpace)
-                    .offset(x: Self.gutter + columnWidth + Self.columnGap)
+                let count = CGFloat(max(columns.count, 1))
+                let columnWidth = max(0, (geometry.size.width - Self.gutter - Self.columnGap * (count - 1)) / count)
+                ForEach(Array(columns.enumerated()), id: \.offset) { index, column in
+                    columnView(column, width: columnWidth)
+                        .offset(x: Self.gutter + CGFloat(index) * (columnWidth + Self.columnGap))
+                }
                 if let now, window.contains(now) {
                     nowLine
                         .offset(x: Self.gutter - 4, y: y(for: now) - 4)
@@ -77,12 +80,8 @@ struct DualTimelineView: View {
 
     // MARK: Колонка
 
-    private func column(
-        _ items: [TimelineItem],
-        width: CGFloat,
-        onTapItem: @escaping (UUID) -> Void,
-        onTapSpace: @escaping (Date) -> Void
-    ) -> some View {
+    private func columnView(_ column: TimelineColumn, width: CGFloat) -> some View {
+        let items = column.items
         let slots = TimelineLayout.layout(items.map {
             TimelineLayout.Span(
                 start: $0.start.timeIntervalSinceReferenceDate,
@@ -95,7 +94,7 @@ struct DualTimelineView: View {
                 .fill(Color(.systemGray6).opacity(0.6))
                 .contentShape(Rectangle())
                 .onTapGesture { location in
-                    onTapSpace(date(atY: location.y))
+                    column.onTapSpace?(date(atY: location.y))
                 }
 
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -108,7 +107,7 @@ struct DualTimelineView: View {
                     .frame(width: max(slotWidth - 2, 0), height: height)
                     .offset(x: CGFloat(slot.column) * slotWidth + 1, y: top)
                     .onTapGesture {
-                        if !item.isGhost { onTapItem(item.id) }
+                        if !item.isGhost { column.onTapItem?(item.id) }
                     }
             }
         }
@@ -180,17 +179,36 @@ private struct TimelineBlockView: View {
 
 /// Подписи колонок, закреплённые над шкалой.
 struct TimelineColumnsHeader: View {
+    let titles: [String]
+
     var body: some View {
-        HStack(spacing: DualTimelineView.columnGap) {
+        HStack(spacing: TimelineGridView.columnGap) {
             Color.clear
-                .frame(width: DualTimelineView.gutter - DualTimelineView.columnGap, height: 1)
-            Text("План")
-                .frame(maxWidth: .infinity)
-            Text("Факт")
-                .frame(maxWidth: .infinity)
+                .frame(width: TimelineGridView.gutter - TimelineGridView.columnGap, height: 1)
+            ForEach(titles, id: \.self) { title in
+                Text(title)
+                    .frame(maxWidth: .infinity)
+            }
         }
         .font(.subheadline.weight(.semibold))
         .padding(.vertical, 6)
         .background(.bar)
+    }
+}
+
+/// Час, на котором открывается шкала: сейчас для сегодняшнего дня,
+/// иначе самое раннее событие, иначе 8 утра.
+enum TimelineScroll {
+    static func initialHour(window: DateInterval, isToday: Bool, starts: [Date]) -> Int {
+        let anchor: Date
+        if isToday {
+            anchor = Date.now.addingTimeInterval(-3600)
+        } else if let first = starts.filter({ window.contains($0) }).min() {
+            anchor = first
+        } else {
+            anchor = window.start.addingTimeInterval(8 * 3600)
+        }
+        let hours = Int(anchor.timeIntervalSince(window.start) / 3600)
+        return min(max(hours, 0), 23)
     }
 }

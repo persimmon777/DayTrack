@@ -2,8 +2,8 @@ import DayTrackCore
 import Foundation
 
 extension DayClock {
-    /// Часы приложения: день начинается в 04:00 по времени телефона.
-    static var app: DayClock { DayClock(calendar: .current, startHour: 4) }
+    /// Часы приложения: день начинается в 00:00 по времени телефона.
+    static var app: DayClock { DayClock(calendar: .current, startHour: 0) }
 }
 
 /// Запись дат и времени по-русски, независимо от языка телефона.

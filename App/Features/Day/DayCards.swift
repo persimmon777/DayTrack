@@ -15,77 +15,67 @@ private extension View {
     func card() -> some View { modifier(CardBackground()) }
 }
 
-// MARK: - Итоги дня
+// MARK: - Состояние плана
 
-/// Состояние плана и итоги сравнения с фактом.
-struct DayHeaderCard: View {
+/// Черновик или зафиксированный план и кнопки фиксации.
+struct PlanStatusCard: View {
     let day: Day?
-    let summary: DaySummary
+    let plannedMinutes: Int
     let canUnlock: Bool
     let onLock: () -> Void
     let onUnlock: () -> Void
-    let onAddBlock: () -> Void
-    let onAddUnplanned: () -> Void
 
     private var hasBlocks: Bool { !(day?.activeBlocks.isEmpty ?? true) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let day, let lockedAt = day.lockedAt {
-                lockedState(lockedAt: lockedAt)
+        VStack(alignment: .leading, spacing: 8) {
+            if let lockedAt = day?.lockedAt {
+                HStack {
+                    Label("План зафиксирован в \(Format.time(lockedAt))", systemImage: "lock.fill")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    if canUnlock {
+                        Menu {
+                            Button("Снять фиксацию", systemImage: "lock.open", action: onUnlock)
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
+                Text("Запланировано \(DurationText.short(minutes: plannedMinutes)). Правки остаются возможны и попадают в журнал.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             } else if hasBlocks {
-                draftState
+                HStack {
+                    Label("План — черновик", systemImage: "pencil")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Button("План готов", action: onLock)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+                Text("Запланировано \(DurationText.short(minutes: plannedMinutes)). После фиксации правки будут видны в отчёте.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             } else {
-                Text("Плана на этот день пока нет. Нажми на колонку «План» на шкале или на кнопку ниже.")
+                Text("Плана на этот день пока нет. Нажми «+» или на шкалу.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-
-            HStack(spacing: 8) {
-                Button(action: onAddBlock) {
-                    Label("Блок плана", systemImage: "plus")
-                }
-                Button(action: onAddUnplanned) {
-                    Label("Дело вне плана", systemImage: "plus")
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
         .card()
     }
+}
 
-    private var draftState: some View {
+// MARK: - Итоги сравнения
+
+/// Процент выполнения и итоги сравнения плана с фактом.
+struct ComparisonCard: View {
+    let day: Day?
+    let summary: DaySummary
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("План — черновик", systemImage: "pencil")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Button("План готов", action: onLock)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-            }
-            Text("Запланировано \(DurationText.short(minutes: summary.current.plannedMinutes)). После фиксации правки останутся возможны, но будут видны в отчёте.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func lockedState(lockedAt: Date) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("План зафиксирован в \(Format.time(lockedAt))", systemImage: "lock.fill")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                if canUnlock {
-                    Menu {
-                        Button("Снять фиксацию", systemImage: "lock.open", action: onUnlock)
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                }
-            }
-
             if let completion = summary.current.completion {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(DurationText.percent(completion))
@@ -105,12 +95,17 @@ struct DayHeaderCard: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+            } else if summary.current.unplannedMinutes > 0 {
+                Text("Плана на этот день не было. Отмечено \(DurationText.short(minutes: summary.current.unplannedMinutes)).")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             } else {
-                Text("В плане нет блоков со временем.")
-                    .font(.footnote)
+                Text("На этот день нет ни плана, ни факта.")
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
+        .card()
     }
 
     private var detailLine: String {

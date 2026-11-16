@@ -195,9 +195,11 @@ struct DayStore {
     }
 
     func updateFact(
-        _ fact: FactEntry, title: String, category: ActivityCategory?,
+        _ fact: FactEntry, block: PlannedBlock?, title: String, category: ActivityCategory?,
         start: Date, end: Date, reason: DeviationReason?, note: String
     ) {
+        fact.block = block
+        block?.missReason = nil
         fact.title = title
         fact.category = category
         fact.start = start

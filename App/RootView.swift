@@ -1,11 +1,21 @@
+import DayTrackCore
 import SwiftUI
 
-/// Четыре вкладки приложения. «Фокусы» и «Аналитика» появятся на этапе 2.
+/// Вкладки приложения. Выбранный день общий для «Плана», «Факта» и «Аналитики».
 struct RootView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
+    @State private var dayKey = DayClock.app.key(for: .now)
+    /// Какой день был «сегодня», когда приложение было открыто в прошлый раз.
+    @State private var lastTodayKey = DayClock.app.key(for: .now)
+
     var body: some View {
         TabView {
-            TodayView()
-                .tabItem { Label("Сегодня", systemImage: "calendar.day.timeline.left") }
+            DayPager(dayKey: $dayKey) { PlanView(dayKey: $0) }
+                .tabItem { Label("План", systemImage: "list.bullet.clipboard") }
+
+            DayPager(dayKey: $dayKey) { FactView(dayKey: $0) }
+                .tabItem { Label("Факт", systemImage: "checkmark.circle") }
 
             PlaceholderTab(
                 title: "Фокусы",
@@ -14,15 +24,21 @@ struct RootView: View {
             )
             .tabItem { Label("Фокусы", systemImage: "scope") }
 
-            PlaceholderTab(
-                title: "Аналитика",
-                systemImage: "chart.bar.xaxis",
-                note: "Графики, календарь и отчёт появятся на этапе 2."
-            )
-            .tabItem { Label("Аналитика", systemImage: "chart.bar.xaxis") }
+            DayPager(dayKey: $dayKey) { AnalyticsDayView(dayKey: $0) }
+                .tabItem { Label("Аналитика", systemImage: "chart.bar.xaxis") }
 
             SettingsView()
                 .tabItem { Label("Настройки", systemImage: "gearshape") }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            // Если приложение открыли на следующий день, а был выбран «сегодня»,
+            // переходим на новый сегодняшний день.
+            let today = DayClock.app.key(for: .now)
+            if dayKey == lastTodayKey, today != lastTodayKey {
+                dayKey = today
+            }
+            lastTodayKey = today
         }
     }
 }

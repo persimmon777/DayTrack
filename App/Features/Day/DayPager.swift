@@ -2,16 +2,24 @@ import DayTrackCore
 import SwiftData
 import SwiftUI
 
-/// Вкладка «Сегодня»: выбор дня и его экран.
-struct TodayView: View {
+/// Обёртка вкладок «План», «Факт» и «Аналитика»: переключение дней стрелками
+/// и выбор даты. Выбранный день общий для всех трёх вкладок.
+struct DayPager<Content: View>: View {
+    @Binding var dayKey: Int
+    let content: (Int) -> Content
+
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var dayKey = DayClock.app.key(for: .now)
     @State private var isPickingDate = false
     @State private var pickedDate = Date.now
 
     private let clock = DayClock.app
+
+    init(dayKey: Binding<Int>, @ViewBuilder content: @escaping (Int) -> Content) {
+        _dayKey = dayKey
+        self.content = content
+    }
 
     private var todayKey: Int { clock.key(for: .now) }
 
@@ -28,7 +36,7 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            DayView(dayKey: dayKey)
+            content(dayKey)
                 .id(dayKey)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -104,5 +112,24 @@ struct TodayView: View {
         if dayKey < todayKey {
             store.autoLockIfNeeded(dayKey: dayKey)
         }
+    }
+}
+
+/// Круглая кнопка «+» в правом нижнем углу, под большой палец.
+struct FloatingAddButton: View {
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "plus")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(Circle().fill(Color.accentColor))
+                .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+        }
+        .accessibilityLabel(label)
+        .padding(20)
     }
 }
