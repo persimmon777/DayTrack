@@ -118,6 +118,7 @@ struct PlanView: View {
                         tasks: (day?.tasks ?? []).sorted { $0.sortOrder < $1.sortOrder },
                         onAdd: { store.addTask(dayKey: dayKey, title: $0) },
                         onToggle: { store.toggleTask($0) },
+                        onEdit: { sheet = DaySheet(kind: .editTask($0)) },
                         onDelete: { store.deleteTask($0) }
                     )
 

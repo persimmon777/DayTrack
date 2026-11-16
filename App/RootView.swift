@@ -42,6 +42,7 @@ struct RootView: View {
             lastTodayKey = today
             // Уведомления о напоминаниях ставятся на ближайшие дни, поэтому список обновляется.
             Task { await ReminderScheduler.reschedule(context: context) }
+            BackupService.autoBackupIfNeeded(context: context)
         }
     }
 }

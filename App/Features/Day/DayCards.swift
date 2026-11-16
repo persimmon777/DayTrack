@@ -181,6 +181,7 @@ struct TasksCard: View {
     let tasks: [TaskItem]
     let onAdd: (String) -> Void
     let onToggle: (TaskItem) -> Void
+    let onEdit: (TaskItem) -> Void
     let onDelete: (TaskItem) -> Void
 
     @State private var newTitle = ""
@@ -211,14 +212,34 @@ struct TasksCard: View {
                     }
                     .buttonStyle(.plain)
 
-                    Text(task.title)
-                        .font(.subheadline)
-                        .strikethrough(task.isDone)
-                        .foregroundStyle(task.isDone ? .secondary : .primary)
-
-                    Spacer(minLength: 0)
+                    Button {
+                        onEdit(task)
+                    } label: {
+                        HStack(spacing: 6) {
+                            if let category = task.category {
+                                Circle()
+                                    .fill(Color(hex: category.colorHex))
+                                    .frame(width: 8, height: 8)
+                            }
+                            Text(task.title)
+                                .font(.subheadline)
+                                .strikethrough(task.isDone)
+                                .foregroundStyle(task.isDone ? .secondary : .primary)
+                            if task.estimateMinutes > 0 {
+                                Text(DurationText.short(minutes: task.estimateMinutes))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
                     Menu {
+                        Button("Изменить", systemImage: "pencil") {
+                            onEdit(task)
+                        }
                         Button("Удалить", systemImage: "trash", role: .destructive) {
                             onDelete(task)
                         }

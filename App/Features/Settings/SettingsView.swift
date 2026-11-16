@@ -34,6 +34,14 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Данные") {
+                    NavigationLink {
+                        BackupView()
+                    } label: {
+                        Label("Резервные копии", systemImage: "externaldrive.badge.timemachine")
+                    }
+                }
+
                 Section("Служебное") {
                     NavigationLink {
                         InstallCheckView()

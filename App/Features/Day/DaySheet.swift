@@ -14,6 +14,7 @@ struct DaySheet: Identifiable {
         case editFact(FactEntry)
         /// Новое (`nil`) или существующее напоминание.
         case reminder(Reminder?)
+        case editTask(TaskItem)
     }
 
     // Отдельный идентификатор, не зависящий от записи: к удалённой записи
@@ -79,6 +80,10 @@ struct DaySheetView: View {
             }
         case .reminder(let reminder):
             ReminderEditorSheet(reminder: reminder, dayKey: dayKey)
+        case .editTask(let task):
+            TaskEditorSheet(task: task, categories: categories) {
+                deleteAfterDismiss { $0.deleteTask(task) }
+            }
         }
     }
 
