@@ -21,6 +21,7 @@ private extension View {
 struct PlanStatusCard: View {
     let day: Day?
     let plannedMinutes: Int
+    let breakdown: [CategoryMinutes]
     let canUnlock: Bool
     let onLock: () -> Void
     let onUnlock: () -> Void
@@ -62,8 +63,58 @@ struct PlanStatusCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+
+            if !breakdown.isEmpty {
+                CategoryBreakdownView(items: breakdown)
+            }
         }
         .card()
+    }
+}
+
+/// Время по категориям.
+struct CategoryMinutes {
+    var name: String
+    var colorHex: String
+    var minutes: Int
+}
+
+/// Полоса с долями категорий и подписи под ней.
+struct CategoryBreakdownView: View {
+    let items: [CategoryMinutes]
+
+    private var total: Int { max(items.reduce(0) { $0 + $1.minutes }, 1) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geometry in
+                HStack(spacing: 2) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                        Rectangle()
+                            .fill(Color(hex: item.colorHex))
+                            .frame(width: max(2, (geometry.size.width - CGFloat(items.count - 1) * 2)
+                                * CGFloat(item.minutes) / CGFloat(total)))
+                    }
+                }
+            }
+            .frame(height: 8)
+            .clipShape(Capsule())
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color(hex: item.colorHex))
+                                .frame(width: 8, height: 8)
+                            Text("\(item.name) \(DurationText.short(minutes: item.minutes))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

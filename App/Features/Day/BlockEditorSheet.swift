@@ -23,6 +23,8 @@ struct BlockEditorSheet: View {
     @State private var end: Date
     @State private var note: String
     @State private var isConfirmingDelete = false
+    /// Пока категорию не выбрали вручную, она подбирается по ключевым словам названия.
+    @State private var categoryChosenByUser: Bool
     @FocusState private var isTitleFocused: Bool
 
     private let clock = DayClock.app
@@ -44,6 +46,7 @@ struct BlockEditorSheet: View {
             _start = State(initialValue: start)
             _end = State(initialValue: start.addingTimeInterval(3600))
             _note = State(initialValue: "")
+            _categoryChosenByUser = State(initialValue: false)
             isLockedDay = false
         case .edit(let block):
             _title = State(initialValue: block.title)
@@ -51,6 +54,7 @@ struct BlockEditorSheet: View {
             _start = State(initialValue: block.start)
             _end = State(initialValue: block.end)
             _note = State(initialValue: block.note)
+            _categoryChosenByUser = State(initialValue: block.category != nil)
             isLockedDay = block.day?.isLocked ?? false
         }
     }
@@ -84,10 +88,15 @@ struct BlockEditorSheet: View {
                 Section {
                     TextField("Название", text: $title)
                         .focused($isTitleFocused)
-                    CategoryPicker(categories: categories, selection: $categoryID)
+                    CategoryPicker(categories: categories, selection: Binding(
+                        get: { categoryID },
+                        set: { categoryID = $0; categoryChosenByUser = true }
+                    ))
                 } footer: {
                     if title.isEmpty {
                         Text("Название можно не писать: подставится название категории.")
+                    } else if !categoryChosenByUser, category != nil {
+                        Text("Категория подобрана по ключевым словам.")
                     }
                 }
 
@@ -148,6 +157,12 @@ struct BlockEditorSheet: View {
             }
             .onAppear {
                 if isNew { isTitleFocused = true }
+            }
+            .onChange(of: title) { _, newTitle in
+                guard !categoryChosenByUser else { return }
+                if let match = CategoryKeywords.match(title: newTitle, in: categories) {
+                    categoryID = match.uuid
+                }
             }
         }
     }

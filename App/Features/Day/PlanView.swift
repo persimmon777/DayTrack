@@ -48,6 +48,7 @@ struct PlanView: View {
                     PlanStatusCard(
                         day: day,
                         plannedMinutes: summary.current.plannedMinutes,
+                        breakdown: categoryBreakdown,
                         canUnlock: day.map { store.canUnlock($0) } ?? false,
                         onLock: { if let day { store.lock(day) } },
                         onUnlock: { if let day { store.unlock(day) } }
@@ -75,7 +76,8 @@ struct PlanView: View {
                                         onTapSpace: { sheet = DaySheet(kind: .newBlock(start: $0)) }
                                     )
                                 ],
-                                now: isToday ? now : nil
+                                now: isToday ? now : nil,
+                                hourHeight: 30
                             )
                             .padding(.top, 8)
                         } header: {
@@ -101,6 +103,21 @@ struct PlanView: View {
                 proxy.scrollTo(TimelineGridView.hourAnchor(hour), anchor: .top)
             }
         }
+    }
+
+    /// Сколько времени запланировано на каждую категорию, по убыванию.
+    private var categoryBreakdown: [CategoryMinutes] {
+        var totals: [String: CategoryMinutes] = [:]
+        for block in day?.activeBlocks ?? [] {
+            let key = block.category?.uuid.uuidString ?? "none"
+            let minutes = PlanComparison.minutes(from: block.start, to: block.end)
+            totals[key, default: CategoryMinutes(
+                name: block.category?.name ?? "Без категории",
+                colorHex: block.category?.colorHex ?? "7F8C8D",
+                minutes: 0
+            )].minutes += minutes
+        }
+        return totals.values.sorted { $0.minutes > $1.minutes }
     }
 
     private func planItems(summary: DaySummary, window: DateInterval) -> [TimelineItem] {

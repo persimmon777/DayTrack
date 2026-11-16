@@ -222,6 +222,8 @@ struct DayStore {
         let task = TaskItem(title: title, sortOrder: nextOrder)
         context.insert(task)
         task.day = day
+        let categories = (try? context.fetch(FetchDescriptor<ActivityCategory>())) ?? []
+        task.category = CategoryKeywords.match(title: title, in: categories)
         task.addedAfterLock = day.isLocked
         save()
     }

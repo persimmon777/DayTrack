@@ -15,6 +15,8 @@ final class ActivityCategory {
     var kindRaw: String = CategoryKind.other.rawValue
     var sortOrder: Int = 0
     var isArchived: Bool = false
+    /// Ключевые слова через запятую: по ним категория подбирается по названию дела.
+    var keywordsRaw: String = ""
 
     @Relationship(deleteRule: .nullify, inverse: \PlannedBlock.category)
     var blocks: [PlannedBlock] = []

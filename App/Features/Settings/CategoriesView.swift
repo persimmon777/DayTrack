@@ -75,9 +75,12 @@ struct CategoriesView: View {
             CategoryBadge(colorHex: category.colorHex, symbol: category.symbol)
             VStack(alignment: .leading, spacing: 1) {
                 Text(category.name)
-                Text(category.kind.title)
+                Text(category.keywords.isEmpty
+                     ? category.kind.title
+                     : "\(category.kind.title) · \(category.keywords.prefix(4).joined(separator: ", "))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
     }
@@ -117,6 +120,7 @@ struct CategoryEditorView: View {
     @State private var kind: CategoryKind
     @State private var colorHex: String
     @State private var symbol: String
+    @State private var keywords: String
 
     init(category: ActivityCategory?, nextSortOrder: Int) {
         self.category = category
@@ -125,6 +129,7 @@ struct CategoryEditorView: View {
         _kind = State(initialValue: category?.kind ?? .study)
         _colorHex = State(initialValue: category?.colorHex ?? CategoryPalette.colors[0])
         _symbol = State(initialValue: category?.symbol ?? CategoryPalette.symbols[0])
+        _keywords = State(initialValue: category?.keywordsRaw ?? "")
     }
 
     private var trimmedName: String {
@@ -148,6 +153,16 @@ struct CategoryEditorView: View {
                     }
                 } footer: {
                     Text("По типу считается баланс: например, «Пары» и «Самообразование» вместе идут в учёбу.")
+                }
+
+                Section {
+                    TextField("Например: трениров, зал, бег", text: $keywords, axis: .vertical)
+                        .lineLimit(2...6)
+                        .textInputAutocapitalization(.never)
+                } header: {
+                    Text("Ключевые слова")
+                } footer: {
+                    Text("Через запятую. Если слово есть в названии дела, категория выберется сама. Окончания можно не писать: «трениров» подходит к «тренировка» и «тренировки».")
                 }
 
                 Section("Цвет") {
@@ -207,14 +222,17 @@ struct CategoryEditorView: View {
             category.kind = kind
             category.colorHex = colorHex
             category.symbol = symbol
+            category.keywordsRaw = keywords
         } else {
-            context.insert(ActivityCategory(
+            let category = ActivityCategory(
                 name: trimmedName,
                 colorHex: colorHex,
                 symbol: symbol,
                 kind: kind,
                 sortOrder: nextSortOrder
-            ))
+            )
+            category.keywordsRaw = keywords
+            context.insert(category)
         }
         try? context.save()
         dismiss()

@@ -121,7 +121,7 @@ struct FactEditorSheet: View {
             set: { newValue in
                 blockID = newValue
                 blockChosenByUser = true
-                if !categoryChosenByUser { categoryID = block?.category?.uuid }
+                suggestCategory()
             }
         )
     }
@@ -207,6 +207,7 @@ struct FactEditorSheet: View {
                         .disabled(resolvedTitle.isEmpty)
                 }
             }
+            .onChange(of: title) { _, _ in suggestCategory() }
             .onChange(of: start) { _, _ in suggestBlock() }
             .onChange(of: end) { _, _ in suggestBlock() }
             .confirmationDialog("Удалить запись?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
@@ -220,7 +221,15 @@ struct FactEditorSheet: View {
     private func suggestBlock() {
         guard !blockChosenByUser else { return }
         blockID = Self.suggestedBlock(in: blocks, start: resolvedStart, end: resolvedEnd)?.uuid
-        if !categoryChosenByUser { categoryID = block?.category?.uuid }
+        suggestCategory()
+    }
+
+    /// Категория по ключевым словам названия, иначе категория блока плана.
+    private func suggestCategory() {
+        guard !categoryChosenByUser else { return }
+        let typed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let byKeywords = typed.isEmpty ? nil : CategoryKeywords.match(title: typed, in: categories)
+        categoryID = byKeywords?.uuid ?? block?.category?.uuid
     }
 
     private func save() {

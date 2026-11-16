@@ -10,7 +10,6 @@ struct TimelineColumn {
 
 /// Шкала времени дня с одной или несколькими колонками рядом.
 struct TimelineGridView: View {
-    static let hourHeight: CGFloat = 56
     static let gutter: CGFloat = 40
     static let columnGap: CGFloat = 6
 
@@ -21,9 +20,13 @@ struct TimelineGridView: View {
     let columns: [TimelineColumn]
     /// Текущий момент. Передаётся только для сегодняшнего дня.
     let now: Date?
+    /// Высота одного часа. В компактном виде блоки занимают одну строку.
+    var hourHeight: CGFloat = 56
+
+    private var isCompact: Bool { hourHeight < 40 }
 
     private var hourCount: Int { max(1, Int((window.duration / 3600).rounded())) }
-    private var totalHeight: CGFloat { CGFloat(hourCount) * Self.hourHeight }
+    private var totalHeight: CGFloat { CGFloat(hourCount) * hourHeight }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -60,7 +63,7 @@ struct TimelineGridView: View {
                         .fill(Color(.separator))
                         .frame(height: 0.5)
                 }
-                .frame(height: Self.hourHeight, alignment: .top)
+                .frame(height: hourHeight, alignment: .top)
                 .id(Self.hourAnchor(index))
             }
         }
@@ -100,10 +103,10 @@ struct TimelineGridView: View {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 let slot = slots[index]
                 let top = y(for: item.start)
-                let height = max(y(for: item.end) - top, 22)
+                let height = max(y(for: item.end) - top, isCompact ? 14 : 22)
                 let slotWidth = width / CGFloat(max(slot.columnCount, 1))
 
-                TimelineBlockView(item: item, height: height)
+                TimelineBlockView(item: item, height: height, isCompact: isCompact)
                     .frame(width: max(slotWidth - 2, 0), height: height)
                     .offset(x: CGFloat(slot.column) * slotWidth + 1, y: top)
                     .onTapGesture {
@@ -118,12 +121,12 @@ struct TimelineGridView: View {
 
     private func y(for date: Date) -> CGFloat {
         let seconds = min(max(date.timeIntervalSince(window.start), 0), window.duration)
-        return CGFloat(seconds / 3600) * Self.hourHeight
+        return CGFloat(seconds / 3600) * hourHeight
     }
 
     /// Время в точке нажатия, округлённое вниз до 15 минут.
     private func date(atY y: CGFloat) -> Date {
-        let seconds = Double(min(max(y, 0), totalHeight) / Self.hourHeight) * 3600
+        let seconds = Double(min(max(y, 0), totalHeight) / hourHeight) * 3600
         let snapped = (seconds / 900).rounded(.down) * 900
         return window.start.addingTimeInterval(min(snapped, window.duration - 900))
     }
@@ -133,6 +136,7 @@ struct TimelineGridView: View {
 private struct TimelineBlockView: View {
     let item: TimelineItem
     let height: CGFloat
+    var isCompact = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -140,6 +144,49 @@ private struct TimelineBlockView: View {
                 .fill(item.color)
                 .frame(width: 3)
 
+            if isCompact {
+                compactLabel
+            } else {
+                fullLabel
+            }
+
+            Spacer(minLength: 0)
+
+            if let badge = item.badgeSymbol {
+                Image(systemName: badge)
+                    .font(isCompact ? .caption2 : .caption)
+                    .foregroundStyle(item.badgeColor)
+                    .padding(isCompact ? 1 : 3)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background {
+            ZStack {
+                Color(.systemBackground)
+                item.color.opacity(0.24)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: isCompact ? 4 : 6))
+        .opacity(item.isGhost ? 0.45 : 1)
+        .contentShape(Rectangle())
+    }
+
+    /// Одна строка: время и название.
+    private var compactLabel: some View {
+        HStack(spacing: 6) {
+            Text(Format.timeRange(item.start, item.end))
+                .font(.caption2)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            Text(item.isGhost ? "↑ \(item.title)" : item.title)
+                .font(.caption2.weight(.semibold))
+        }
+        .lineLimit(1)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 1)
+    }
+
+    private var fullLabel: some View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.isGhost ? "↑ \(item.title)" : item.title)
                     .font(.caption.weight(.semibold))
@@ -154,26 +201,6 @@ private struct TimelineBlockView: View {
             }
             .padding(.horizontal, 5)
             .padding(.vertical, 3)
-
-            Spacer(minLength: 0)
-
-            if let badge = item.badgeSymbol {
-                Image(systemName: badge)
-                    .font(.caption)
-                    .foregroundStyle(item.badgeColor)
-                    .padding(3)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background {
-            ZStack {
-                Color(.systemBackground)
-                item.color.opacity(0.24)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .opacity(item.isGhost ? 0.45 : 1)
-        .contentShape(Rectangle())
     }
 }
 
