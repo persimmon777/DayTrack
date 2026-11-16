@@ -97,6 +97,8 @@ final class PlannedBlock {
     var missReasonRaw: String?
     /// Откуда взялся блок: вручную, из расписания или из шаблона.
     var sourceRaw: String = Source.manual.rawValue
+    /// Фокус недели или месяца, к которому относится блок.
+    var focusUUID: UUID?
 
     enum Source: String {
         case manual
@@ -136,6 +138,7 @@ final class TaskItem {
     var sortOrder: Int = 0
     var createdAt: Date = Date.distantPast
     var addedAfterLock: Bool = false
+    var focusUUID: UUID?
 
     var day: Day?
     var category: ActivityCategory?
@@ -156,8 +159,10 @@ final class FactEntry {
     var start: Date = Date.distantPast
     var end: Date = Date.distantPast
     var note: String = ""
-    /// Причина отклонения. Обязательна для дел вне плана.
+    /// Причина отклонения. Для дел вне плана по умолчанию «Другое».
     var reasonRaw: String?
+    /// Фокус записи. Если не задан, берётся фокус блока плана.
+    var focusUUID: UUID?
 
     var day: Day?
     var category: ActivityCategory?
@@ -178,6 +183,9 @@ final class FactEntry {
     }
 
     var isUnplanned: Bool { block == nil }
+
+    /// Фокус с учётом блока плана.
+    var effectiveFocusUUID: UUID? { focusUUID ?? block?.focusUUID }
 }
 
 /// Запись журнала: правка плана после фиксации.
@@ -314,4 +322,106 @@ struct TemplateItem: Codable, Hashable {
     var startMinute: Int
     /// Длительность в минутах.
     var durationMinutes: Int
+}
+
+/// Фокус недели или месяца: главное, на что идёт время в этот период.
+@Model
+final class Focus {
+    var uuid: UUID = UUID()
+    var title: String = ""
+    /// Зачем это нужно: связь с большой целью.
+    var why: String = ""
+    var periodRaw: String = FocusPeriod.week.rawValue
+    /// Первый день периода: понедельник недели или 1-е число месяца.
+    var periodStartKey: Int = 0
+    /// Фокус месяца, шагом к которому служит этот фокус недели.
+    var parentUUID: UUID?
+    var statusRaw: String = FocusStatus.active.rawValue
+    /// Итог периода своими словами.
+    var result: String = ""
+    var sortOrder: Int = 0
+    var createdAt: Date = Date.distantPast
+
+    init(title: String, period: FocusPeriod, periodStartKey: Int) {
+        self.uuid = UUID()
+        self.title = title
+        self.periodRaw = period.rawValue
+        self.periodStartKey = periodStartKey
+        self.createdAt = .now
+    }
+
+    var period: FocusPeriod {
+        get { FocusPeriod(rawValue: periodRaw) ?? .week }
+        set { periodRaw = newValue.rawValue }
+    }
+
+    var status: FocusStatus {
+        get { FocusStatus(rawValue: statusRaw) ?? .active }
+        set { statusRaw = newValue.rawValue }
+    }
+
+    /// Дни периода фокуса.
+    var range: ClosedRange<Int> {
+        Periods.range(period == .week ? .week : .month, containing: periodStartKey, calendar: .current)
+    }
+}
+
+enum FocusPeriod: String, CaseIterable {
+    case week
+    case month
+
+    var title: String { self == .week ? "Неделя" : "Месяц" }
+}
+
+enum FocusStatus: String, CaseIterable {
+    case active
+    case done
+    case dropped
+
+    var title: String {
+        switch self {
+        case .active: return "В работе"
+        case .done: return "Получилось"
+        case .dropped: return "Отложено"
+        }
+    }
+}
+
+/// Отметка энергии и настроения (1–5).
+@Model
+final class EnergyMark {
+    var uuid: UUID = UUID()
+    var at: Date = Date.distantPast
+    var dayKey: Int = 0
+    var energy: Int = 3
+    var mood: Int = 3
+
+    init(at: Date, dayKey: Int, energy: Int, mood: Int) {
+        self.uuid = UUID()
+        self.at = at
+        self.dayKey = dayKey
+        self.energy = energy
+        self.mood = mood
+    }
+}
+
+/// Вечерний разбор дня.
+@Model
+final class Reflection {
+    @Attribute(.unique) var dayKey: Int = 0
+    var wentWell: String = ""
+    var hindered: String = ""
+    var changeTomorrow: String = ""
+    /// Оценка дня 1–5, 0 — не поставлена.
+    var rating: Int = 0
+    var updatedAt: Date = Date.distantPast
+
+    init(dayKey: Int) {
+        self.dayKey = dayKey
+        self.updatedAt = .now
+    }
+
+    var isEmpty: Bool {
+        wentWell.isEmpty && hindered.isEmpty && changeTomorrow.isEmpty && rating == 0
+    }
 }

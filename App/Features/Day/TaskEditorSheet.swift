@@ -38,6 +38,7 @@ struct TaskEditorSheet: View {
                         }
                     }
                     Toggle("Сделано", isOn: $task.isDone)
+                    FocusPicker(dayKey: task.day?.key ?? DayClock.app.key(for: .now), selection: $task.focusUUID)
                 } footer: {
                     Text("Оценка времени пригодится советчику: он сравнит её с тем, сколько уходит на самом деле.")
                 }

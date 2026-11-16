@@ -18,12 +18,8 @@ struct RootView: View {
             DayPager(dayKey: $dayKey) { FactView(dayKey: $0) }
                 .tabItem { Label("Факт", systemImage: "checkmark.circle") }
 
-            PlaceholderTab(
-                title: "Фокусы",
-                systemImage: "scope",
-                note: "Фокусы недели и месяца появятся на этапе 2."
-            )
-            .tabItem { Label("Фокусы", systemImage: "scope") }
+            FocusView()
+                .tabItem { Label("Фокусы", systemImage: "scope") }
 
             DayPager(dayKey: $dayKey) { AnalyticsDayView(dayKey: $0) }
                 .tabItem { Label("Аналитика", systemImage: "chart.bar.xaxis") }
@@ -43,19 +39,6 @@ struct RootView: View {
             // Уведомления о напоминаниях ставятся на ближайшие дни, поэтому список обновляется.
             Task { await ReminderScheduler.reschedule(context: context) }
             BackupService.autoBackupIfNeeded(context: context)
-        }
-    }
-}
-
-private struct PlaceholderTab: View {
-    let title: String
-    let systemImage: String
-    let note: String
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(title, systemImage: systemImage, description: Text(note))
-                .navigationTitle(title)
         }
     }
 }

@@ -14,6 +14,9 @@ enum AppDatabase {
         Reminder.self,
         ScheduleRule.self,
         DayTemplate.self,
+        Focus.self,
+        EnergyMark.self,
+        Reflection.self,
     ]
 
     /// База хранится в папке самого приложения. Новые поля и сущности

@@ -22,6 +22,7 @@ struct BlockEditorSheet: View {
     @State private var start: Date
     @State private var end: Date
     @State private var note: String
+    @State private var focusID: UUID?
     /// День блока. Новый блок можно сразу поставить на любой день.
     @State private var dayDate: Date
     @State private var isConfirmingDelete = false
@@ -49,6 +50,7 @@ struct BlockEditorSheet: View {
             _start = State(initialValue: start)
             _end = State(initialValue: start.addingTimeInterval(3600))
             _note = State(initialValue: "")
+            _focusID = State(initialValue: nil)
             _categoryChosenByUser = State(initialValue: false)
             isLockedDay = false
         case .edit(let block):
@@ -57,6 +59,7 @@ struct BlockEditorSheet: View {
             _start = State(initialValue: block.start)
             _end = State(initialValue: block.end)
             _note = State(initialValue: block.note)
+            _focusID = State(initialValue: block.focusUUID)
             _categoryChosenByUser = State(initialValue: block.category != nil)
             isLockedDay = block.day?.isLocked ?? false
         }
@@ -131,6 +134,10 @@ struct BlockEditorSheet: View {
                     }
                 }
 
+                Section {
+                    FocusPicker(dayKey: targetDayKey, selection: $focusID)
+                }
+
                 Section("Заметка") {
                     TextField("Необязательно", text: $note, axis: .vertical)
                         .lineLimit(1...4)
@@ -184,11 +191,14 @@ struct BlockEditorSheet: View {
         let store = DayStore(context: context)
         switch mode {
         case .new:
-            store.addBlock(
+            let block = store.addBlock(
                 dayKey: targetDayKey, title: resolvedTitle, category: category,
                 start: resolvedStart, end: resolvedEnd, note: note
             )
+            block.focusUUID = focusID
+            store.save()
         case .edit(let block):
+            block.focusUUID = focusID
             store.updateBlock(
                 block, title: resolvedTitle, category: category,
                 start: resolvedStart, end: resolvedEnd, note: note

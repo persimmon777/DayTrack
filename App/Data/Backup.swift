@@ -15,6 +15,20 @@ struct BackupSnapshot: Codable {
     var reminders: [ReminderDTO]
     var scheduleRules: [ScheduleRuleDTO]
     var templates: [TemplateDTO]
+    var focuses: [FocusDTO]?
+    var energyMarks: [EnergyDTO]?
+    var reflections: [ReflectionDTO]?
+
+    struct FocusDTO: Codable {
+        var uuid: UUID, title: String, why: String, periodRaw: String, periodStartKey: Int
+        var parentUUID: UUID?, statusRaw: String, result: String, sortOrder: Int, createdAt: Date
+    }
+    struct EnergyDTO: Codable {
+        var uuid: UUID, at: Date, dayKey: Int, energy: Int, mood: Int
+    }
+    struct ReflectionDTO: Codable {
+        var dayKey: Int, wentWell: String, hindered: String, changeTomorrow: String, rating: Int, updatedAt: Date
+    }
 
     struct CategoryDTO: Codable {
         var uuid: UUID, name: String, colorHex: String, symbol: String, kindRaw: String
@@ -27,15 +41,15 @@ struct BackupSnapshot: Codable {
     struct BlockDTO: Codable {
         var uuid: UUID, title: String, start: Date, end: Date, note: String
         var baselineStart: Date?, baselineEnd: Date?, addedAfterLock: Bool, removedAt: Date?
-        var missReasonRaw: String?, sourceRaw: String?, categoryUUID: UUID?
+        var missReasonRaw: String?, sourceRaw: String?, categoryUUID: UUID?, focusUUID: UUID?
     }
     struct TaskDTO: Codable {
         var uuid: UUID, title: String, estimateMinutes: Int, isDone: Bool, sortOrder: Int
-        var createdAt: Date, addedAfterLock: Bool, categoryUUID: UUID?
+        var createdAt: Date, addedAfterLock: Bool, categoryUUID: UUID?, focusUUID: UUID?
     }
     struct FactDTO: Codable {
         var uuid: UUID, title: String, start: Date, end: Date, note: String
-        var reasonRaw: String?, categoryUUID: UUID?, blockUUID: UUID?
+        var reasonRaw: String?, categoryUUID: UUID?, blockUUID: UUID?, focusUUID: UUID?
     }
     struct ChangeDTO: Codable {
         var uuid: UUID, at: Date, kindRaw: String, text: String, blockUUID: UUID?
@@ -86,16 +100,17 @@ enum BackupService {
                               baselineStart: $0.baselineStart, baselineEnd: $0.baselineEnd,
                               addedAfterLock: $0.addedAfterLock, removedAt: $0.removedAt,
                               missReasonRaw: $0.missReasonRaw, sourceRaw: $0.sourceRaw,
-                              categoryUUID: $0.category?.uuid)
+                              categoryUUID: $0.category?.uuid, focusUUID: $0.focusUUID)
                     },
                     tasks: day.tasks.map {
                         .init(uuid: $0.uuid, title: $0.title, estimateMinutes: $0.estimateMinutes, isDone: $0.isDone,
                               sortOrder: $0.sortOrder, createdAt: $0.createdAt, addedAfterLock: $0.addedAfterLock,
-                              categoryUUID: $0.category?.uuid)
+                              categoryUUID: $0.category?.uuid, focusUUID: $0.focusUUID)
                     },
                     facts: day.facts.map {
                         .init(uuid: $0.uuid, title: $0.title, start: $0.start, end: $0.end, note: $0.note,
-                              reasonRaw: $0.reasonRaw, categoryUUID: $0.category?.uuid, blockUUID: $0.block?.uuid)
+                              reasonRaw: $0.reasonRaw, categoryUUID: $0.category?.uuid, blockUUID: $0.block?.uuid,
+                              focusUUID: $0.focusUUID)
                     },
                     changes: day.changes.map {
                         .init(uuid: $0.uuid, at: $0.at, kindRaw: $0.kindRaw, text: $0.text, blockUUID: $0.blockUUID)
@@ -114,6 +129,18 @@ enum BackupService {
             },
             templates: fetch(DayTemplate.self).map {
                 .init(uuid: $0.uuid, name: $0.name, itemsJSON: $0.itemsJSON, createdAt: $0.createdAt)
+            },
+            focuses: fetch(Focus.self).map {
+                .init(uuid: $0.uuid, title: $0.title, why: $0.why, periodRaw: $0.periodRaw,
+                      periodStartKey: $0.periodStartKey, parentUUID: $0.parentUUID, statusRaw: $0.statusRaw,
+                      result: $0.result, sortOrder: $0.sortOrder, createdAt: $0.createdAt)
+            },
+            energyMarks: fetch(EnergyMark.self).map {
+                .init(uuid: $0.uuid, at: $0.at, dayKey: $0.dayKey, energy: $0.energy, mood: $0.mood)
+            },
+            reflections: fetch(Reflection.self).map {
+                .init(dayKey: $0.dayKey, wentWell: $0.wentWell, hindered: $0.hindered,
+                      changeTomorrow: $0.changeTomorrow, rating: $0.rating, updatedAt: $0.updatedAt)
             }
         )
     }
@@ -132,6 +159,9 @@ enum BackupService {
         deleteAll(Reminder.self)
         deleteAll(ScheduleRule.self)
         deleteAll(DayTemplate.self)
+        deleteAll(Focus.self)
+        deleteAll(EnergyMark.self)
+        deleteAll(Reflection.self)
         try context.save()
 
         var categories: [UUID: ActivityCategory] = [:]
@@ -163,6 +193,7 @@ enum BackupService {
                 block.removedAt = item.removedAt
                 block.missReasonRaw = item.missReasonRaw
                 block.sourceRaw = item.sourceRaw ?? PlannedBlock.Source.manual.rawValue
+                block.focusUUID = item.focusUUID
                 context.insert(block)
                 block.day = day
                 block.category = item.categoryUUID.flatMap { categories[$0] }
@@ -174,6 +205,7 @@ enum BackupService {
                 task.estimateMinutes = item.estimateMinutes
                 task.isDone = item.isDone
                 task.addedAfterLock = item.addedAfterLock
+                task.focusUUID = item.focusUUID
                 context.insert(task)
                 task.day = day
                 task.category = item.categoryUUID.flatMap { categories[$0] }
@@ -182,6 +214,7 @@ enum BackupService {
                 let fact = FactEntry(title: item.title, start: item.start, end: item.end, note: item.note)
                 fact.uuid = item.uuid
                 fact.reasonRaw = item.reasonRaw
+                fact.focusUUID = item.focusUUID
                 context.insert(fact)
                 fact.day = day
                 fact.category = item.categoryUUID.flatMap { categories[$0] }
@@ -225,6 +258,32 @@ enum BackupService {
             template.itemsJSON = dto.itemsJSON
             template.createdAt = dto.createdAt
             context.insert(template)
+        }
+        for dto in snapshot.focuses ?? [] {
+            let focus = Focus(title: dto.title, period: .week, periodStartKey: dto.periodStartKey)
+            focus.uuid = dto.uuid
+            focus.why = dto.why
+            focus.periodRaw = dto.periodRaw
+            focus.parentUUID = dto.parentUUID
+            focus.statusRaw = dto.statusRaw
+            focus.result = dto.result
+            focus.sortOrder = dto.sortOrder
+            focus.createdAt = dto.createdAt
+            context.insert(focus)
+        }
+        for dto in snapshot.energyMarks ?? [] {
+            let mark = EnergyMark(at: dto.at, dayKey: dto.dayKey, energy: dto.energy, mood: dto.mood)
+            mark.uuid = dto.uuid
+            context.insert(mark)
+        }
+        for dto in snapshot.reflections ?? [] {
+            let reflection = Reflection(dayKey: dto.dayKey)
+            reflection.wentWell = dto.wentWell
+            reflection.hindered = dto.hindered
+            reflection.changeTomorrow = dto.changeTomorrow
+            reflection.rating = dto.rating
+            reflection.updatedAt = dto.updatedAt
+            context.insert(reflection)
         }
         if let key = snapshot.firstWeekKey { ScheduleSettings.firstWeekKey = key }
         try context.save()

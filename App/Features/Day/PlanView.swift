@@ -99,6 +99,8 @@ struct PlanView: View {
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12, pinnedViews: [.sectionHeaders]) {
+                    FocusStrip(dayKey: dayKey)
+
                     PlanStatusCard(
                         day: day,
                         plannedMinutes: summary.current.plannedMinutes,

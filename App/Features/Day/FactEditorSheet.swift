@@ -26,6 +26,7 @@ struct FactEditorSheet: View {
     @State private var blockID: UUID?
     @State private var reason: DeviationReason?
     @State private var note: String
+    @State private var focusID: UUID?
     @State private var isConfirmingDelete = false
     /// Пока пользователь сам не выбрал блок или категорию, они подбираются по времени.
     @State private var blockChosenByUser: Bool
@@ -60,6 +61,7 @@ struct FactEditorSheet: View {
             _blockID = State(initialValue: picked?.uuid)
             _reason = State(initialValue: nil)
             _note = State(initialValue: "")
+            _focusID = State(initialValue: nil)
             _blockChosenByUser = State(initialValue: block != nil)
             _categoryChosenByUser = State(initialValue: false)
         case .edit(let fact):
@@ -71,6 +73,7 @@ struct FactEditorSheet: View {
             _blockID = State(initialValue: fact.block?.uuid)
             _reason = State(initialValue: fact.reason)
             _note = State(initialValue: fact.note)
+            _focusID = State(initialValue: fact.focusUUID)
             _blockChosenByUser = State(initialValue: true)
             _categoryChosenByUser = State(initialValue: true)
         }
@@ -172,6 +175,14 @@ struct FactEditorSheet: View {
                 }
 
                 Section {
+                    FocusPicker(
+                        dayKey: dayKey,
+                        selection: $focusID,
+                        noneTitle: block?.focusUUID == nil ? "Без фокуса" : "Как у блока плана"
+                    )
+                }
+
+                Section {
                     Picker("Причина", selection: $reason) {
                         Text("Не указывать").tag(DeviationReason?.none)
                         ForEach(DeviationReason.allCases, id: \.self) { reason in
@@ -237,11 +248,14 @@ struct FactEditorSheet: View {
         let finalReason = reason ?? (isUnplanned ? .other : nil)
         switch mode {
         case .new:
-            store.addFact(
+            let fact = store.addFact(
                 dayKey: dayKey, block: block, title: resolvedTitle, category: category,
                 start: resolvedStart, end: resolvedEnd, reason: finalReason, note: note
             )
+            fact.focusUUID = focusID
+            store.save()
         case .edit(let fact):
+            fact.focusUUID = focusID
             store.updateFact(
                 fact, block: block, title: resolvedTitle, category: category,
                 start: resolvedStart, end: resolvedEnd, reason: finalReason, note: note
