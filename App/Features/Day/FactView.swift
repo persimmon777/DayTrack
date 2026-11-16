@@ -9,6 +9,8 @@ struct FactView: View {
     @Environment(\.modelContext) private var context
     @Query private var days: [Day]
     @Query private var previousDays: [Day]
+    @Query private var energyMarks: [EnergyMark]
+    @Query private var reflections: [Reflection]
 
     @State private var sheet: DaySheet?
 
@@ -19,6 +21,8 @@ struct FactView: View {
         let previousKey = DayClock.app.key(byAdding: -1, to: dayKey)
         _days = Query(filter: #Predicate<Day> { $0.key == dayKey })
         _previousDays = Query(filter: #Predicate<Day> { $0.key == previousKey })
+        _energyMarks = Query(filter: #Predicate<EnergyMark> { $0.dayKey == dayKey }, sort: \EnergyMark.at)
+        _reflections = Query(filter: #Predicate<Reflection> { $0.dayKey == dayKey })
     }
 
     private var day: Day? { days.first }
@@ -84,13 +88,63 @@ struct FactView: View {
                     rowView(row)
                 }
             }
+
+            if !energyMarks.isEmpty {
+                Section("Энергия и настроение") {
+                    ForEach(energyMarks) { mark in
+                        HStack {
+                            Text(Format.time(mark.at))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Label("\(mark.energy)", systemImage: "bolt.fill")
+                            Label("\(mark.mood)", systemImage: "face.smiling")
+                                .padding(.leading, 8)
+                        }
+                        .font(.subheadline)
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                context.delete(mark)
+                                try? context.save()
+                            } label: {
+                                Label("Удалить", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    sheet = DaySheet(kind: .reflection)
+                } label: {
+                    Label(
+                        (reflections.first?.isEmpty ?? true) ? "Вечерний разбор" : "Вечерний разбор заполнен",
+                        systemImage: (reflections.first?.isEmpty ?? true) ? "moon.stars" : "checkmark.seal"
+                    )
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 72)
         }
         .overlay(alignment: .bottomTrailing) {
-            FloatingAddButton(label: "Добавить факт", action: addNext)
+            FloatingAddMenu(label: "Добавить") {
+                Button(action: addNext) {
+                    Label("Запись факта", systemImage: "plus.circle")
+                }
+                Button {
+                    sheet = DaySheet(kind: .energy)
+                } label: {
+                    Label("Энергия и настроение", systemImage: "bolt.heart")
+                }
+                Button {
+                    sheet = DaySheet(kind: .reflection)
+                } label: {
+                    Label("Вечерний разбор", systemImage: "moon.stars")
+                }
+            }
         }
         .sheet(item: $sheet) { item in
             DaySheetView(sheet: item, dayKey: dayKey) { sheet = $0 }
