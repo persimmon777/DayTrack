@@ -63,7 +63,7 @@ enum NotificationSettings {
 /// Ставятся на ближайшие дни и пересобираются при каждом открытии и сворачивании приложения.
 @MainActor
 enum DailyNotifications {
-    private static let prefixes = ["daily-", "fact-", "break-", "eve-"]
+    private static let prefixes = ["daily-", "fact-", "break-", "eve-", "proj-"]
 
     static func reschedule(context: ModelContext) async {
         let center = UNUserNotificationCenter.current()
@@ -122,6 +122,23 @@ enum DailyNotifications {
                 let more = blocks.count > 4 ? " и ещё \(blocks.count - 4)" : ""
                 add("eve-\(key)", at: date, title: "Завтра запланировано",
                     body: "\(list)\(more). Проверь, всё ли готово.")
+            }
+        }
+
+        // Большие дела: напомнить, если сегодня ещё не занимался.
+        let projects = ((try? context.fetch(FetchDescriptor<Project>())) ?? []).filter { !$0.isArchived && $0.nudgeOn }
+        for project in projects.prefix(3) {
+            for offset in 0..<3 {
+                if offset == 0, project.workedToday { continue }
+                let key = clock.key(byAdding: offset, to: todayKey)
+                guard let date = clock.resolve(hour: project.nudgeMinute / 60, minute: project.nudgeMinute % 60, inDay: key)
+                else { continue }
+                let idle = project.daysIdle() + offset
+                let step = project.nextStep.map { " Следующий шаг: \($0.title)." } ?? ""
+                let body = idle >= 2
+                    ? "\(project.minimumMinutes) минут, и цепочка снова началась. Не надо наверстывать.\(step)"
+                    : "Всего \(project.minimumMinutes) минут — главное не пропускать два дня подряд.\(step)"
+                add("proj-\(project.uuid.uuidString)-\(key)", at: date, title: "\(project.title): \(project.minimumMinutes) минут?", body: body)
             }
         }
 

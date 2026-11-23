@@ -165,6 +165,8 @@ final class FactEntry {
     var reasonRaw: String?
     /// Фокус записи. Если не задан, берётся фокус блока плана.
     var focusUUID: UUID?
+    /// Большое дело, которым занимался.
+    var projectUUID: UUID?
 
     var day: Day?
     var category: ActivityCategory?
@@ -426,4 +428,57 @@ final class Reflection {
     var isEmpty: Bool {
         wentWell.isEmpty && hindered.isEmpty && changeTomorrow.isEmpty && rating == 0
     }
+}
+
+/// Большое дело, которое легко забросить: курс, проект, объёмное задание.
+/// Разбивается на маленькие шаги и держится минимумом в несколько минут.
+@Model
+final class Project {
+    var uuid: UUID = UUID()
+    var title: String = ""
+    var why: String = ""
+    var categoryUUID: UUID?
+    /// Минимум, который засчитывается как «не бросил»: по умолчанию 5 минут.
+    var minimumMinutes: Int = 5
+    /// План «если — то»: «Если пришёл с пар и поел, то открываю курс на 5 минут».
+    var ifThen: String = ""
+    var stepsJSON: String = "[]"
+    var createdAt: Date = Date.distantPast
+    var lastWorkedAt: Date?
+    var isArchived: Bool = false
+    /// Ежедневное напоминание, если сегодня ещё не занимался.
+    var nudgeOn: Bool = true
+    var nudgeMinute: Int = 19 * 60
+    var sortOrder: Int = 0
+
+    init(title: String) {
+        self.uuid = UUID()
+        self.title = title
+        self.createdAt = .now
+    }
+
+    var steps: [ProjectStep] {
+        get { (try? JSONDecoder().decode([ProjectStep].self, from: Data(stepsJSON.utf8))) ?? [] }
+        set { stepsJSON = (try? String(decoding: JSONEncoder().encode(newValue), as: UTF8.self)) ?? "[]" }
+    }
+
+    var nextStep: ProjectStep? { steps.first { !$0.isDone } }
+
+    /// Сколько полных дней прошло с последнего занятия (или с создания).
+    func daysIdle(now: Date = .now, calendar: Calendar = .current) -> Int {
+        let last = lastWorkedAt ?? createdAt
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: now)).day ?? 0
+    }
+
+    var workedToday: Bool {
+        lastWorkedAt.map { Calendar.current.isDateInToday($0) } ?? false
+    }
+}
+
+/// Шаг большого дела.
+struct ProjectStep: Codable, Hashable, Identifiable {
+    var id = UUID()
+    var title: String
+    var minutes: Int
+    var isDone = false
 }

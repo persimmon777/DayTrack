@@ -58,6 +58,11 @@ struct SettingsView: View {
                     } label: {
                         Label("Цель баланса", systemImage: "chart.pie")
                     }
+                    NavigationLink {
+                        GameSettingsView()
+                    } label: {
+                        Label("Игры", systemImage: "gamecontroller")
+                    }
                 }
 
                 Section("Аналитика") {

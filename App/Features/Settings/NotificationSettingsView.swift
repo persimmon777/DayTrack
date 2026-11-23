@@ -1,3 +1,4 @@
+import DayTrackCore
 import SwiftData
 import SwiftUI
 import UserNotifications
@@ -138,6 +139,37 @@ struct BalanceTargetView: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+/// Бюджет игр.
+struct GameSettingsView: View {
+    @Environment(\.modelContext) private var context
+
+    @State private var budget = Double(GameSettings.weeklyBudgetMinutes) / 60
+    @State private var earn = GameSettings.earnByStudy
+
+    var body: some View {
+        let stats = GameSettings.weekStats(context: context)
+        Form {
+            Section {
+                LabeledContent("Сыграно за неделю", value: DurationText.short(minutes: stats.played))
+                LabeledContent("Учёба за неделю", value: DurationText.short(minutes: stats.studied))
+            }
+            Section {
+                Stepper(value: $budget, in: 1...40, step: 1) {
+                    Text("Бюджет: \(Int(budget)) ч в неделю")
+                }
+                Toggle("Игровое время зарабатывается учёбой", isOn: $earn)
+            } footer: {
+                Text("С заработком: сколько выучил, столько можно играть, но не больше бюджета. Так игра становится наградой после дела, а не побегом от него. Жёстко заблокировать игры приложение не может — для этого есть «Экранное время» в настройках iPhone.")
+            }
+        }
+        .navigationTitle("Игры")
+        .onDisappear {
+            GameSettings.weeklyBudgetMinutes = Int(budget * 60)
+            GameSettings.earnByStudy = earn
         }
     }
 }

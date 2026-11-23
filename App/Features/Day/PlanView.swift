@@ -46,10 +46,26 @@ struct PlanView: View {
                 } label: {
                     Label("Напоминание или событие", systemImage: "bell.badge")
                 }
+                Divider()
+                Button {
+                    sheet = DaySheet(kind: .focusStart(projectID: nil, minutes: 5))
+                } label: {
+                    Label("Только начать: 5 минут", systemImage: "figure.walk.motion")
+                }
+                Button {
+                    sheet = DaySheet(kind: .escape)
+                } label: {
+                    Label("Хочу сбежать — помоги", systemImage: "lifepreserver")
+                }
                 Button {
                     sheet = DaySheet(kind: .restStart)
                 } label: {
                     Label("Начать отдых", systemImage: "cup.and.saucer")
+                }
+                Button {
+                    sheet = DaySheet(kind: .gameStart)
+                } label: {
+                    Label("Игра по таймеру", systemImage: "gamecontroller")
                 }
                 Divider()
                 Button {
@@ -109,6 +125,12 @@ struct PlanView: View {
                     if isToday { StreakLine() }
 
                     FocusStrip(dayKey: dayKey)
+
+                    if isToday {
+                        ProjectNudgeCard { project in
+                            sheet = DaySheet(kind: .focusStart(projectID: project.uuid, minutes: project.minimumMinutes))
+                        }
+                    }
 
                     if dayKey >= clock.key(for: now) {
                         AdviceCard(dayKey: dayKey, now: now)

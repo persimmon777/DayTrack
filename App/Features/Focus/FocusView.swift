@@ -52,7 +52,18 @@ private struct FocusPeriodList: View {
 
     @Query(sort: \Focus.sortOrder) private var allFocuses: [Focus]
     @Query private var days: [Day]
+    @Query(sort: \Project.sortOrder) private var projects: [Project]
     @State private var target: EditorTarget?
+
+    private struct ProjectTarget: Identifiable {
+        let id = UUID()
+        let project: Project?
+    }
+
+    @State private var projectTarget: ProjectTarget?
+    @State private var focusProject: Project?
+    @State private var isShowingEscape = false
+    @State private var isShowingArchive = false
 
     init(weekRange: ClosedRange<Int>, monthRange: ClosedRange<Int>) {
         self.weekRange = weekRange
@@ -82,6 +93,8 @@ private struct FocusPeriodList: View {
 
     var body: some View {
         List {
+            projectsSection
+
             section(
                 title: "Неделя \(rangeText(weekRange))",
                 focuses: weekFocuses,
@@ -99,6 +112,15 @@ private struct FocusPeriodList: View {
                 Text("Фокус — то главное, ради чего этот период. Привязывай к нему блоки плана, задачи и записи факта: время посчитается само. Лучше не больше трёх фокусов на период.")
             }
         }
+        .sheet(item: $projectTarget) { item in
+            ProjectEditorSheet(project: item.project)
+        }
+        .sheet(item: $focusProject) { project in
+            FocusStartSheet(projectID: project.uuid, minutes: project.minimumMinutes)
+        }
+        .sheet(isPresented: $isShowingEscape) {
+            EscapeHelpSheet()
+        }
         .sheet(item: $target) { item in
             FocusEditorSheet(
                 focus: item.focus,
@@ -107,6 +129,41 @@ private struct FocusPeriodList: View {
                 activeCount: (item.period == .week ? weekFocuses : monthFocuses).filter { $0.status != .dropped }.count,
                 monthFocuses: monthFocuses
             )
+        }
+    }
+
+    private var projectsSection: some View {
+        let active = projects.filter { !$0.isArchived }
+        let archived = projects.filter(\.isArchived)
+        return Section {
+            ForEach(active) { project in
+                ProjectRow(project: project) { focusProject = project }
+                    .contentShape(Rectangle())
+                    .onTapGesture { projectTarget = ProjectTarget(project: project) }
+            }
+            Button {
+                projectTarget = ProjectTarget(project: nil)
+            } label: {
+                Label("Большое дело", systemImage: "plus")
+            }
+            Button {
+                isShowingEscape = true
+            } label: {
+                Label("Хочу сбежать — помоги", systemImage: "lifepreserver")
+            }
+            if !archived.isEmpty {
+                DisclosureGroup("Завершённые: \(archived.count)", isExpanded: $isShowingArchive) {
+                    ForEach(archived) { project in
+                        Text(project.title)
+                            .foregroundStyle(.secondary)
+                            .onTapGesture { projectTarget = ProjectTarget(project: project) }
+                    }
+                }
+            }
+        } header: {
+            Text("Большие дела")
+        } footer: {
+            Text("Курс, проект или объёмное задание, которое легко забросить. Дело разбивается на шаги по 5–25 минут, а минимум в несколько минут в день не даёт цепочке оборваться.")
         }
     }
 

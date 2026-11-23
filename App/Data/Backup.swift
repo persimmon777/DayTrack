@@ -18,6 +18,13 @@ struct BackupSnapshot: Codable {
     var focuses: [FocusDTO]?
     var energyMarks: [EnergyDTO]?
     var reflections: [ReflectionDTO]?
+    var projects: [ProjectDTO]?
+
+    struct ProjectDTO: Codable {
+        var uuid: UUID, title: String, why: String, categoryUUID: UUID?, minimumMinutes: Int, ifThen: String
+        var stepsJSON: String, createdAt: Date, lastWorkedAt: Date?, isArchived: Bool
+        var nudgeOn: Bool, nudgeMinute: Int, sortOrder: Int
+    }
 
     struct FocusDTO: Codable {
         var uuid: UUID, title: String, why: String, periodRaw: String, periodStartKey: Int
@@ -49,7 +56,7 @@ struct BackupSnapshot: Codable {
     }
     struct FactDTO: Codable {
         var uuid: UUID, title: String, start: Date, end: Date, note: String
-        var reasonRaw: String?, categoryUUID: UUID?, blockUUID: UUID?, focusUUID: UUID?
+        var reasonRaw: String?, categoryUUID: UUID?, blockUUID: UUID?, focusUUID: UUID?, projectUUID: UUID?
     }
     struct ChangeDTO: Codable {
         var uuid: UUID, at: Date, kindRaw: String, text: String, blockUUID: UUID?
@@ -110,7 +117,7 @@ enum BackupService {
                     facts: day.facts.map {
                         .init(uuid: $0.uuid, title: $0.title, start: $0.start, end: $0.end, note: $0.note,
                               reasonRaw: $0.reasonRaw, categoryUUID: $0.category?.uuid, blockUUID: $0.block?.uuid,
-                              focusUUID: $0.focusUUID)
+                              focusUUID: $0.focusUUID, projectUUID: $0.projectUUID)
                     },
                     changes: day.changes.map {
                         .init(uuid: $0.uuid, at: $0.at, kindRaw: $0.kindRaw, text: $0.text, blockUUID: $0.blockUUID)
@@ -141,6 +148,12 @@ enum BackupService {
             reflections: fetch(Reflection.self).map {
                 .init(dayKey: $0.dayKey, wentWell: $0.wentWell, hindered: $0.hindered,
                       changeTomorrow: $0.changeTomorrow, rating: $0.rating, updatedAt: $0.updatedAt)
+            },
+            projects: fetch(Project.self).map {
+                .init(uuid: $0.uuid, title: $0.title, why: $0.why, categoryUUID: $0.categoryUUID,
+                      minimumMinutes: $0.minimumMinutes, ifThen: $0.ifThen, stepsJSON: $0.stepsJSON,
+                      createdAt: $0.createdAt, lastWorkedAt: $0.lastWorkedAt, isArchived: $0.isArchived,
+                      nudgeOn: $0.nudgeOn, nudgeMinute: $0.nudgeMinute, sortOrder: $0.sortOrder)
             }
         )
     }
@@ -162,6 +175,7 @@ enum BackupService {
         deleteAll(Focus.self)
         deleteAll(EnergyMark.self)
         deleteAll(Reflection.self)
+        deleteAll(Project.self)
         try context.save()
 
         var categories: [UUID: ActivityCategory] = [:]
@@ -216,6 +230,7 @@ enum BackupService {
                 fact.uuid = item.uuid
                 fact.reasonRaw = item.reasonRaw
                 fact.focusUUID = item.focusUUID
+                fact.projectUUID = item.projectUUID
                 context.insert(fact)
                 fact.day = day
                 fact.category = item.categoryUUID.flatMap { categories[$0] }
@@ -285,6 +300,22 @@ enum BackupService {
             reflection.rating = dto.rating
             reflection.updatedAt = dto.updatedAt
             context.insert(reflection)
+        }
+        for dto in snapshot.projects ?? [] {
+            let project = Project(title: dto.title)
+            project.uuid = dto.uuid
+            project.why = dto.why
+            project.categoryUUID = dto.categoryUUID
+            project.minimumMinutes = dto.minimumMinutes
+            project.ifThen = dto.ifThen
+            project.stepsJSON = dto.stepsJSON
+            project.createdAt = dto.createdAt
+            project.lastWorkedAt = dto.lastWorkedAt
+            project.isArchived = dto.isArchived
+            project.nudgeOn = dto.nudgeOn
+            project.nudgeMinute = dto.nudgeMinute
+            project.sortOrder = dto.sortOrder
+            context.insert(project)
         }
         if let key = snapshot.firstWeekKey { ScheduleSettings.firstWeekKey = key }
         try context.save()

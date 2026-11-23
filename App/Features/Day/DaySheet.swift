@@ -18,6 +18,9 @@ struct DaySheet: Identifiable {
         case energy
         case reflection
         case restStart
+        case focusStart(projectID: UUID?, minutes: Int)
+        case gameStart
+        case escape
     }
 
     // Отдельный идентификатор, не зависящий от записи: к удалённой записи
@@ -87,6 +90,12 @@ struct DaySheetView: View {
             EnergySheet(dayKey: dayKey)
         case .restStart:
             RestStartSheet(dayKey: dayKey)
+        case .focusStart(let projectID, let minutes):
+            FocusStartSheet(projectID: projectID, minutes: minutes)
+        case .gameStart:
+            GameStartSheet()
+        case .escape:
+            EscapeHelpSheet()
         case .reflection:
             ReflectionSheet(dayKey: dayKey)
         case .editTask(let task):

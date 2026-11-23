@@ -17,6 +17,7 @@ enum AppDatabase {
         Focus.self,
         EnergyMark.self,
         Reflection.self,
+        Project.self,
     ]
 
     /// База хранится в папке самого приложения. Новые поля и сущности
@@ -48,6 +49,30 @@ enum AppDatabase {
     ]
 
     private static let keywordsSeededKey = "keywordsSeeded.v1"
+    private static let gamesCategoryKey = "gamesCategory.v1"
+
+    /// Категория «Игры»: нужна таймеру игр и бюджету игрового времени.
+    @MainActor
+    static func gamesCategory(_ context: ModelContext) -> ActivityCategory {
+        let all = (try? context.fetch(FetchDescriptor<ActivityCategory>(sortBy: [SortDescriptor(\.sortOrder)]))) ?? []
+        if let stored = UserDefaults.standard.string(forKey: gamesCategoryKey).flatMap(UUID.init(uuidString:)),
+           let found = all.first(where: { $0.uuid == stored }) {
+            return found
+        }
+        if let byName = all.first(where: { $0.name.lowercased() == "игры" }) {
+            UserDefaults.standard.set(byName.uuid.uuidString, forKey: gamesCategoryKey)
+            return byName
+        }
+        let category = ActivityCategory(
+            name: "Игры", colorHex: "E056A0", symbol: "gamecontroller.fill",
+            kind: .rest, sortOrder: (all.map(\.sortOrder).max() ?? 0) + 1
+        )
+        category.keywordsRaw = "игры, игра, играть, поиграть, поиграл, game, игровой"
+        context.insert(category)
+        try? context.save()
+        UserDefaults.standard.set(category.uuid.uuidString, forKey: gamesCategoryKey)
+        return category
+    }
 
     @MainActor
     static func seedIfNeeded(_ context: ModelContext) {
@@ -72,5 +97,6 @@ enum AppDatabase {
         }
         UserDefaults.standard.set(true, forKey: keywordsSeededKey)
         try? context.save()
+        _ = gamesCategory(context)
     }
 }

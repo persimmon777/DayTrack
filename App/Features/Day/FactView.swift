@@ -141,9 +141,19 @@ struct FactView: View {
                     Label("Запись факта", systemImage: "plus.circle")
                 }
                 Button {
+                    sheet = DaySheet(kind: .focusStart(projectID: nil, minutes: 5))
+                } label: {
+                    Label("Только начать: 5 минут", systemImage: "figure.walk.motion")
+                }
+                Button {
                     sheet = DaySheet(kind: .restStart)
                 } label: {
                     Label("Начать отдых", systemImage: "cup.and.saucer")
+                }
+                Button {
+                    sheet = DaySheet(kind: .gameStart)
+                } label: {
+                    Label("Игра по таймеру", systemImage: "gamecontroller")
                 }
                 Button {
                     sheet = DaySheet(kind: .energy)

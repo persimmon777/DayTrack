@@ -180,7 +180,7 @@ public enum Advisor {
     }
 
     /// Первый свободный промежуток нужной длины между 9:00 и 22:00 (и не раньше текущего момента).
-    static func freeSlot(_ input: AdvisorInput, minutes: Int, after: Date? = nil) -> Date? {
+    public static func freeSlot(_ input: AdvisorInput, minutes: Int, after: Date? = nil) -> Date? {
         let from = max(after ?? input.dayWindow.start.addingTimeInterval(9 * 3600), input.dayWindow.start.addingTimeInterval(9 * 3600))
         let limit = input.dayWindow.start.addingTimeInterval(22 * 3600)
         var cursor = roundUp(max(from, input.now), toMinutes: 15)
