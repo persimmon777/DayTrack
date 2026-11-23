@@ -6,18 +6,22 @@ import SwiftUI
 /// и выбор даты. Выбранный день общий для всех трёх вкладок.
 struct DayPager<Content: View>: View {
     @Binding var dayKey: Int
+    /// Показывать кнопку календаря планов.
+    var showsPlanCalendar = false
     let content: (Int) -> Content
 
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var isPickingDate = false
+    @State private var isShowingCalendar = false
     @State private var pickedDate = Date.now
 
     private let clock = DayClock.app
 
-    init(dayKey: Binding<Int>, @ViewBuilder content: @escaping (Int) -> Content) {
+    init(dayKey: Binding<Int>, showsPlanCalendar: Bool = false, @ViewBuilder content: @escaping (Int) -> Content) {
         _dayKey = dayKey
+        self.showsPlanCalendar = showsPlanCalendar
         self.content = content
     }
 
@@ -58,6 +62,13 @@ struct DayPager<Content: View>: View {
                         }
                     }
                     ToolbarItemGroup(placement: .topBarTrailing) {
+                        if showsPlanCalendar {
+                            Button {
+                                isShowingCalendar = true
+                            } label: {
+                                Label("Календарь планов", systemImage: "calendar")
+                            }
+                        }
                         if dayKey != todayKey {
                             Button("Сегодня") { dayKey = todayKey }
                         }
@@ -71,6 +82,9 @@ struct DayPager<Content: View>: View {
         }
         .sheet(isPresented: $isPickingDate) {
             datePicker
+        }
+        .fullScreenCover(isPresented: $isShowingCalendar) {
+            PlanCalendarView(dayKey: dayKey) { dayKey = $0 }
         }
         .onAppear(perform: autoLock)
         .onChange(of: scenePhase) { _, phase in

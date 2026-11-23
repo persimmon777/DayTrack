@@ -39,6 +39,15 @@ enum NotificationSettings {
         get { (defaults.array(forKey: "notify.factMinutes") as? [Int]) ?? [13 * 60, 18 * 60] }
         set { defaults.set(newValue, forKey: "notify.factMinutes") }
     }
+    /// Накануне вечером напомнить о том, что запланировано на завтра.
+    static var eveBeforeOn: Bool {
+        get { bool("notify.eveBefore", true) }
+        set { defaults.set(newValue, forKey: "notify.eveBefore") }
+    }
+    static var eveBeforeMinute: Int {
+        get { minute("notify.eveBeforeMinute", 20 * 60) }
+        set { defaults.set(newValue, forKey: "notify.eveBeforeMinute") }
+    }
     static var breakOn: Bool {
         get { bool("notify.break", true) }
         set { defaults.set(newValue, forKey: "notify.break") }
@@ -54,7 +63,7 @@ enum NotificationSettings {
 /// Ставятся на ближайшие дни и пересобираются при каждом открытии и сворачивании приложения.
 @MainActor
 enum DailyNotifications {
-    private static let prefixes = ["daily-", "fact-", "break-"]
+    private static let prefixes = ["daily-", "fact-", "break-", "eve-"]
 
     static func reschedule(context: ModelContext) async {
         let center = UNUserNotificationCenter.current()
@@ -94,6 +103,25 @@ enum DailyNotifications {
                let date = clock.resolve(hour: NotificationSettings.eveningMinute / 60, minute: NotificationSettings.eveningMinute % 60, inDay: key) {
                 add("daily-evening-\(key)", at: date, title: "Время подвести итоги",
                     body: "Внеси факт за день и ответь на три вопроса разбора. Это пара минут.")
+            }
+        }
+
+        if NotificationSettings.eveBeforeOn {
+            // Накануне — о делах, поставленных вручную (расписание и так известно).
+            let store = DayStore(context: context)
+            for offset in 1...7 {
+                let key = clock.key(byAdding: offset, to: todayKey)
+                let blocks = (store.day(forKey: key)?.activeBlocks ?? [])
+                    .filter { $0.sourceRaw == PlannedBlock.Source.manual.rawValue }
+                    .sorted { $0.start < $1.start }
+                guard !blocks.isEmpty else { continue }
+                let eve = clock.key(byAdding: -1, to: key)
+                let minute = NotificationSettings.eveBeforeMinute
+                guard let date = clock.resolve(hour: minute / 60, minute: minute % 60, inDay: eve) else { continue }
+                let list = blocks.prefix(4).map { "\(Format.time($0.start)) \($0.title)" }.joined(separator: ", ")
+                let more = blocks.count > 4 ? " и ещё \(blocks.count - 4)" : ""
+                add("eve-\(key)", at: date, title: "Завтра запланировано",
+                    body: "\(list)\(more). Проверь, всё ли готово.")
             }
         }
 

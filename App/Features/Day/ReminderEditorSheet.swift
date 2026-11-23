@@ -42,7 +42,8 @@ struct ReminderEditorSheet: View {
         ) ?? day)
         _repeatRule = State(initialValue: reminder?.repeatRule ?? .none)
         _notify = State(initialValue: reminder?.notify ?? true)
-        _leadDays = State(initialValue: reminder?.leadDays ?? 0)
+        // Заранее запланированное лучше вспомнить накануне.
+        _leadDays = State(initialValue: reminder?.leadDays ?? 1)
         _repeatChosenByUser = State(initialValue: reminder != nil)
     }
 
@@ -74,18 +75,17 @@ struct ReminderEditorSheet: View {
                 Section {
                     Toggle("Уведомление", isOn: $notify)
                     if notify {
-                        Picker("Когда", selection: $leadDays) {
-                            Text("В тот же день").tag(0)
-                            Text("За 1 день").tag(1)
+                        Picker("Ещё заранее", selection: $leadDays) {
+                            Text("Не нужно").tag(0)
+                            Text("Накануне").tag(1)
                             Text("За 3 дня").tag(3)
                             Text("За неделю").tag(7)
                         }
                     }
                 } footer: {
                     if notify {
-                        Text(leadDays == 0 && !isAllDay
-                             ? "Уведомление придёт в указанное время."
-                             : "Уведомление придёт в 9:00.")
+                        Text((isAllDay ? "В сам день уведомление придёт в 9:00" : "В сам день уведомление придёт в указанное время")
+                             + (leadDays > 0 ? ", а заранее — в 20:00." : "."))
                     }
                 }
 

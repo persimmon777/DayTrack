@@ -40,29 +40,36 @@ enum ReminderScheduler {
         for reminder in reminders {
             // Предупреждение заранее может прийти на дни раньше события.
             let fromKey = todayKey
-            let throughKey = Recurrence.key(todayKey, addingDays: horizonDays + reminder.leadDays, calendar: calendar)
+            let throughKey = Recurrence.key(todayKey, addingDays: horizonDays, calendar: calendar)
             let days = Recurrence.occurrences(
                 first: reminder.firstDayKey, rule: reminder.repeatRule,
                 from: fromKey, through: throughKey, calendar: calendar
             )
             for dayKey in days {
-                let notifyDayKey = Recurrence.key(dayKey, addingDays: -reminder.leadDays, calendar: calendar)
-                let minute = reminder.leadDays > 0 ? allDayMinute : (reminder.minuteOfDay ?? allDayMinute)
-                guard let fireDate = date(dayKey: notifyDayKey, minute: minute, calendar: calendar),
-                      fireDate > now else { continue }
+                // В сам день — во время события (или в 9:00), и отдельно заранее, если выбрано.
+                var moments: [(notifyDayKey: Int, minute: Int, lead: Int)] = [
+                    (dayKey, reminder.minuteOfDay ?? allDayMinute, 0)
+                ]
+                if reminder.leadDays > 0 {
+                    moments.append((Recurrence.key(dayKey, addingDays: -reminder.leadDays, calendar: calendar), 20 * 60, reminder.leadDays))
+                }
+                for moment in moments {
+                    guard let fireDate = date(dayKey: moment.notifyDayKey, minute: moment.minute, calendar: calendar),
+                          fireDate > now else { continue }
 
-                let content = UNMutableNotificationContent()
-                content.title = reminder.title
-                content.body = body(for: reminder, dayKey: dayKey, calendar: calendar)
-                content.sound = .default
+                    let content = UNMutableNotificationContent()
+                    content.title = reminder.title
+                    content.body = body(for: reminder, dayKey: dayKey, lead: moment.lead, calendar: calendar)
+                    content.sound = .default
 
-                let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
-                let request = UNNotificationRequest(
-                    identifier: "\(prefix)\(reminder.uuid.uuidString)-\(dayKey)",
-                    content: content,
-                    trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
-                )
-                requests.append((fireDate, request))
+                    let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+                    let request = UNNotificationRequest(
+                        identifier: "\(prefix)\(reminder.uuid.uuidString)-\(dayKey)-\(moment.lead)",
+                        content: content,
+                        trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
+                    )
+                    requests.append((fireDate, request))
+                }
             }
         }
 
@@ -82,14 +89,14 @@ enum ReminderScheduler {
         return calendar.date(from: parts)
     }
 
-    private static func body(for reminder: Reminder, dayKey: Int, calendar: Calendar) -> String {
+    private static func body(for reminder: Reminder, dayKey: Int, lead: Int, calendar: Calendar) -> String {
         let when: String
-        switch reminder.leadDays {
+        switch lead {
         case 0: when = "Сегодня"
         case 1: when = "Завтра"
         default:
             let date = Recurrence.date(forKey: dayKey, calendar: calendar) ?? .now
-            when = "Через \(reminder.leadDays) дн., \(Format.day(date))"
+            when = "Через \(lead) дн., \(Format.day(date))"
         }
         let time = reminder.minuteOfDay == nil ? "" : " в \(reminder.timeText)"
         let note = reminder.note.isEmpty ? "" : "\n\(reminder.note)"

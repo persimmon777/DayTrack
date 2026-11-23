@@ -12,7 +12,7 @@ struct RootView: View {
 
     var body: some View {
         TabView {
-            DayPager(dayKey: $dayKey) { PlanView(dayKey: $0) }
+            DayPager(dayKey: $dayKey, showsPlanCalendar: true) { PlanView(dayKey: $0) }
                 .tabItem { Label("План", systemImage: "list.bullet.clipboard") }
 
             DayPager(dayKey: $dayKey) { FactView(dayKey: $0) }

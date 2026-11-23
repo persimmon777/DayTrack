@@ -13,6 +13,8 @@ struct NotificationSettingsView: View {
     @State private var factOn = NotificationSettings.factOn
     @State private var fact1 = Self.date(NotificationSettings.factMinutes.first ?? 13 * 60)
     @State private var fact2 = Self.date(NotificationSettings.factMinutes.dropFirst().first ?? 18 * 60)
+    @State private var eveOn = NotificationSettings.eveBeforeOn
+    @State private var eve = Self.date(NotificationSettings.eveBeforeMinute)
     @State private var breakOn = NotificationSettings.breakOn
     @State private var breakInterval = NotificationSettings.breakInterval
     @State private var status = ""
@@ -29,6 +31,12 @@ struct NotificationSettingsView: View {
                 if morningOn { DatePicker("Время", selection: $morning, displayedComponents: .hourAndMinute) }
                 Toggle("Вечером: подвести итоги", isOn: $eveningOn)
                 if eveningOn { DatePicker("Время", selection: $evening, displayedComponents: .hourAndMinute) }
+            }
+            Section {
+                Toggle("Накануне: что запланировано на завтра", isOn: $eveOn)
+                if eveOn { DatePicker("Время", selection: $eve, displayedComponents: .hourAndMinute) }
+            } footer: {
+                Text("Приходит вечером перед днём, в который ты заранее поставил дела. Занятия из расписания не перечисляются.")
             }
             Section {
                 Toggle("Напоминать внести факт", isOn: $factOn)
@@ -64,6 +72,8 @@ struct NotificationSettingsView: View {
         NotificationSettings.eveningMinute = Self.minute(evening)
         NotificationSettings.factOn = factOn
         NotificationSettings.factMinutes = [Self.minute(fact1), Self.minute(fact2)]
+        NotificationSettings.eveBeforeOn = eveOn
+        NotificationSettings.eveBeforeMinute = Self.minute(eve)
         NotificationSettings.breakOn = breakOn
         NotificationSettings.breakInterval = breakInterval
         let context = self.context
