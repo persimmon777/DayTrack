@@ -77,10 +77,10 @@ struct NotificationSettingsView: View {
         NotificationSettings.eveBeforeMinute = Self.minute(eve)
         NotificationSettings.breakOn = breakOn
         NotificationSettings.breakInterval = breakInterval
-        let context = self.context
+        let modelContext = context
         Task { @MainActor in
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
-            await DailyNotifications.reschedule(context: context)
+            await DailyNotifications.reschedule(context: modelContext)
         }
     }
 

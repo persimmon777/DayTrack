@@ -210,8 +210,8 @@ struct ProjectEditorSheet: View {
         target.nudgeOn = nudgeOn
         target.nudgeMinute = NotificationSettingsView.minute(nudgeTime)
         try? context.save()
-        let context = self.context
-        Task { await DailyNotifications.reschedule(context: context) }
+        let modelContext = context
+        Task { await DailyNotifications.reschedule(context: modelContext) }
         dismiss()
     }
 }
