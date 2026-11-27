@@ -5,16 +5,18 @@ import { SheetHost, ToastHost, toast } from './sheets'
 import { PlanTab } from './plan/PlanTab'
 import { FactTab } from './fact/FactTab'
 import { FocusTab } from './focus/FocusTab'
+import { CalendarTab } from './CalendarTab'
 import { AnalyticsTab } from './analytics/AnalyticsTab'
 import { SettingsTab, themes } from './settings/SettingsTab'
 import { Onboarding } from './Onboarding'
 import { todayKey } from '../core/time'
 import { setInAppHandler } from '../data/notifications'
 
-type Tab = 'plan' | 'fact' | 'focus' | 'analytics' | 'settings'
+type Tab = 'plan' | 'fact' | 'calendar' | 'focus' | 'analytics' | 'settings'
 const tabs: { id: Tab; title: string; icon: string }[] = [
   { id: 'plan', title: 'План', icon: '📋' },
   { id: 'fact', title: 'Факт', icon: '✅' },
+  { id: 'calendar', title: 'Календарь', icon: '🗓️' },
   { id: 'focus', title: 'Фокусы', icon: '🎯' },
   { id: 'analytics', title: 'Аналитика', icon: '📊' },
   { id: 'settings', title: 'Настройки', icon: '⚙️' },
@@ -53,6 +55,7 @@ export function App() {
       <main>
         {tab === 'plan' && <PlanTab dayKey={dayKey} setDayKey={setDayKey} />}
         {tab === 'fact' && <FactTab dayKey={dayKey} setDayKey={setDayKey} />}
+        {tab === 'calendar' && <CalendarTab onOpenDay={(k) => { setDayKey(k); setTab('plan') }} />}
         {tab === 'focus' && <FocusTab />}
         {tab === 'analytics' && <AnalyticsTab dayKey={dayKey} setDayKey={setDayKey} />}
         {tab === 'settings' && <SettingsTab />}

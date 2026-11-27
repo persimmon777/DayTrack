@@ -70,7 +70,7 @@ main { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 
 /* Нижние вкладки */
 .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: flex; background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid var(--sep); padding-bottom: env(safe-area-inset-bottom); }
-.tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 0 4px; font-size: 10px; color: var(--muted); filter: grayscale(1); opacity: 0.75; }
+.tabbar button { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 0 4px; font-size: 9.5px; letter-spacing: -0.1px; color: var(--muted); filter: grayscale(1); opacity: 0.75; }
 .tabbar button span { font-size: 22px; }
 .tabbar button.on { color: var(--accent); filter: none; opacity: 1; }
 
@@ -252,6 +252,19 @@ progress::-moz-progress-bar { background: var(--accent); }
 .no-fact { position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 3px; background: var(--warn); }
 .no-fact-legend { background: var(--warn); }
 .period-nav { display: flex; align-items: center; justify-content: space-between; }
+
+/* Отдельный календарь */
+.mcal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.mcal-cell { position: relative; aspect-ratio: 0.82; border-radius: 10px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; overflow: hidden; }
+.mcal-cell.filled { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
+.mcal-cell.past { opacity: 0.6; }
+.mcal-cell.today { box-shadow: 0 0 0 2px var(--accent); }
+.mcal-num { font-size: 16px; font-weight: 600; }
+.mcal-time { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mcal-more { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 600; }
+.mcal-bell { position: absolute; top: 2px; right: 3px; font-size: 9px; text-shadow: none; }
+.popup-mark { width: 14px; flex: none; text-align: center; }
+.popup-time { color: var(--muted); min-width: 92px; }
 
 /* Графики */
 .chart { width: 100%; height: auto; }
