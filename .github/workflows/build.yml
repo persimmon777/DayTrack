@@ -6,6 +6,7 @@ name: Сборка
 on:
   push:
     branches: ["**"]
+    paths-ignore: ["web/**", "docs/**", ".github/workflows/web.yml"]
   workflow_dispatch:
     inputs:
       notes:

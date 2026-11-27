@@ -12,3 +12,7 @@ DerivedData/
 
 .DS_Store
 xcuserdata/
+
+# Веб-версия
+web/node_modules/
+web/dist/

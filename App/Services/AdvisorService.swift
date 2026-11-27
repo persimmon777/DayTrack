@@ -134,11 +134,12 @@ struct AdvisorService {
         var weekStudy = 0
         var elapsed = 0
         if week.lowerBound < dayKey {
-            let weekDays = days(week.lowerBound...clock.key(byAdding: -1, to: dayKey))
+            // Цель считается по прошедшим дням, в которых что-то отмечено: новичка не упрекаем нулём.
+            let weekDays = days(week.lowerBound...clock.key(byAdding: -1, to: dayKey)).filter { !$0.facts.isEmpty }
             weekStudy = weekDays.flatMap(\.facts)
                 .filter { $0.category?.kind == .study }
                 .reduce(0) { $0 + PlanComparison.minutes(from: $1.start, to: $1.end) }
-            elapsed = Periods.days(in: week.lowerBound...clock.key(byAdding: -1, to: dayKey), calendar: calendar).count
+            elapsed = weekDays.count
         }
 
         let input = AdvisorInput(

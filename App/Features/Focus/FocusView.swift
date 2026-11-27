@@ -93,6 +93,12 @@ private struct FocusPeriodList: View {
 
     var body: some View {
         List {
+            if RestTimer.isRunning {
+                RestBanner()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
             projectsSection
 
             section(
