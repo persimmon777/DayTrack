@@ -5,7 +5,7 @@ import { Timeline, TimelineItem, scrollToHour } from '../Timeline'
 import { Fab } from '../kit'
 import { openSheet, toast } from '../sheets'
 import { BlockEditor, BlockDetail } from '../sheets/editors'
-import { ReminderEditor, RestStart, FocusStart, GameStart, EscapeHelp } from '../sheets/more'
+import { ReminderEditor } from '../sheets/more'
 import { SessionBanner } from '../SessionBanner'
 import { PlanStatusCard, FocusStrip, StreakLine, AdviceCard, ProjectNudge, RemindersCard, TasksCard, ChangesCard } from './PlanCards'
 import { PlanCalendar } from './PlanCalendar'
@@ -66,10 +66,6 @@ export function PlanTab(props: { dayKey: DayKey; setDayKey: (k: DayKey) => void 
       <Fab items={[
         { title: 'Блок плана', icon: '➕', onClick: () => openSheet(() => <BlockEditor dayKey={dayKey} start={defaultStart()} />) },
         { title: 'Напоминание или событие', icon: '🔔', onClick: () => openSheet(() => <ReminderEditor dayKey={dayKey} />) },
-        { title: 'Только начать: 5 минут', icon: '🚶', onClick: () => openSheet(() => <FocusStart />), divider: true },
-        { title: 'Хочу сбежать — помоги', icon: '🛟', onClick: () => openSheet(() => <EscapeHelp />) },
-        { title: 'Начать отдых', icon: '☕', onClick: () => openSheet(() => <RestStart dayKey={dayKey} />) },
-        { title: 'Игра по таймеру', icon: '🎮', onClick: () => openSheet(() => <GameStart />) },
         { title: 'Подставить расписание', icon: '🗓️', divider: true, onClick: () => { const n = S.applySchedule(dayKey); toast(n ? `Добавлено занятий из расписания: ${n}.` : 'В расписании нет занятий на этот день, которых ещё нет в плане.') } },
         ...S.getState().templates.map((t) => ({ title: `Шаблон: ${t.name}`, icon: '📋', onClick: () => S.applyTemplate(t.id, dayKey) })),
         ...(S.activeBlocks(d).length ? [{ title: 'Сохранить день как шаблон', icon: '💾', onClick: () => { const name = prompt('Название шаблона', 'Учебный день'); if (name?.trim() && d) { S.saveTemplate(name.trim(), d); toast('Шаблон сохранён') } } }] : []),
