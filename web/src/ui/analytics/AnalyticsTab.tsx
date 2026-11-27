@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useState } from 'preact/hooks'
 import * as S from '../../data/store'
 import { periodData, groupMinutes, heat, PeriodData } from '../../data/analytics'
 import { Card, Segmented } from '../kit'
 import { openSheet } from '../sheets'
 import { ReportSheet, ReflectionSheet } from '../sheets/more'
 import { BlockDetail, FactEditor } from '../sheets/editors'
-import { Timeline, TimelineItem, scrollToHour } from '../Timeline'
+import { Timeline, TimelineItem } from '../Timeline'
 import { planItem } from '../plan/PlanTab'
 import { Bars, StackedBars, Donut, PlanFactBars, HourLines } from './charts'
 import { dayTitle } from '../DayHeader'
@@ -50,14 +50,24 @@ function DayAnalytics(props: { dayKey: DayKey }) {
   const sum = S.summary(d, now)
   const win = windowOf(dayKey)
   const prevDay = S.day(addDays(dayKey, -1))
-  useEffect(() => {
-    const starts = [...S.activeBlocks(d).map((b) => b.start), ...(d?.facts ?? []).map((f) => f.start)]
-    scrollToHour(dayKey === todayKey() ? new Date().getHours() - 1 : starts.length ? new Date(Math.min(...starts)).getHours() : 8)
-  }, [dayKey])
   const plan: TimelineItem[] = [...S.activeBlocks(prevDay).filter((b) => b.end > win.start).map((b) => planItem(b, undefined, true)), ...S.activeBlocks(d).map((b) => planItem(b, sum.status(b.id)?.status))]
   const factItem = (f: { id: string; title: string; start: number; end: number; categoryId: string | null; blockId: string | null }, ghost = false): TimelineItem =>
     ({ id: f.id, title: f.title, start: f.start, end: f.end, color: S.category(f.categoryId)?.color ?? '#7F8C8D', ghost, badge: !ghost && !f.blockId ? '⑂' : undefined, badgeColor: '#f39c12' })
   const facts = [...(prevDay?.facts ?? []).filter((f) => f.end > win.start).map((f) => factItem(f, true)), ...(d?.facts ?? []).map((f) => factItem(f))]
+  // Компактная шкала: только часы, в которые что-то есть (не меньше 8), и высота часа
+  // подобрана так, чтобы весь день помещался на экране без прокрутки.
+  const all = [...plan, ...facts]
+  const isToday = dayKey === todayKey()
+  let h0 = 8, h1 = 20
+  if (all.length || isToday) {
+    const hourOf = (t: number) => (Math.min(Math.max(t, win.start), win.end) - win.start) / 3600000
+    const marksH = [...all.flatMap((i) => [hourOf(i.start), hourOf(i.end)]), ...(isToday ? [hourOf(now)] : [])]
+    h0 = Math.floor(Math.min(...marksH))
+    h1 = Math.ceil(Math.max(...marksH))
+  }
+  if (h1 - h0 < 8) { h1 = Math.min(24, Math.max(h1, h0 + 8)); h0 = Math.max(0, h1 - 8) }
+  const compactWindow = { start: win.start + h0 * 3600000, end: win.start + h1 * 3600000 }
+  const hourHeight = Math.max(14, Math.min(44, Math.floor((window.innerHeight - 420) / (h1 - h0))))
   const c = sum.current
   const marks = st.energy.filter((m) => m.day === dayKey).sort((a, b) => a.at - b.at)
   const r = st.reflections[dayKey]
@@ -73,7 +83,7 @@ function DayAnalytics(props: { dayKey: DayKey }) {
           </>
         ) : <p class="muted">{c.unplannedMinutes ? `Плана на этот день не было. Отмечено ${duration(c.unplannedMinutes)}.` : 'На этот день нет ни плана, ни факта.'}</p>}
       </Card>
-      <Timeline window={win} titles={['План', 'Факт']} now={dayKey === todayKey() ? now : null} columns={[
+      <Timeline window={compactWindow} hourHeight={hourHeight} titles={['План', 'Факт']} now={isToday ? now : null} columns={[
         { items: plan, onTapItem: (id) => openSheet(() => <BlockDetail dayKey={dayKey} blockId={id} />) },
         { items: facts, onTapItem: (id) => { const f = d?.facts.find((x) => x.id === id); if (f) openSheet(() => <FactEditor dayKey={dayKey} fact={f} />) } },
       ]} />

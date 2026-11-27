@@ -1,5 +1,5 @@
 import { layout } from '../core/comparison'
-import { fmtMinute, fmtRange } from '../core/time'
+import { fmtRange, fmtTime } from '../core/time'
 
 export interface TimelineItem { id: string; title: string; start: number; end: number; color: string; badge?: string; badgeColor?: string; ghost?: boolean }
 export interface TimelineColumn { items: TimelineItem[]; onTapItem?: (id: string) => void; onTapSpace?: (time: number) => void }
@@ -25,7 +25,7 @@ export function Timeline(props: { window: { start: number; end: number }; column
       <div class="timeline" style={{ height: total }}>
         {Array.from({ length: hours }, (_, i) => (
           <div class="hour" id={`hour-${i}`} style={{ top: i * hh, height: hh }}>
-            <span class="hour-label">{fmtMinute(i * 60)}</span>
+            <span class="hour-label">{fmtTime(props.window.start + i * 3600000)}</span>
           </div>
         ))}
         <div class="columns">
@@ -47,7 +47,7 @@ export function Timeline(props: { window: { start: number; end: number }; column
                       style={{ top, height, left: `calc(${s.column * width}% + 1px)`, width: `calc(${width}% - 2px)`, '--c': item.color } as never}
                       onClick={(e) => { e.stopPropagation(); if (!item.ghost) col.onTapItem?.(item.id) }}>
                       {compact
-                        ? <span class="tl-line"><span class="tl-time">{fmtRange(item.start, item.end)}</span> <b>{item.ghost ? '↑ ' : ''}{item.title}</b></span>
+                        ? <span class="tl-line"><b>{item.ghost ? '↑ ' : ''}{item.title}</b> <span class="tl-time">{fmtRange(item.start, item.end)}</span></span>
                         : <>
                           <b class="tl-title" style={{ WebkitLineClamp: height > 52 ? 2 : 1 }}>{item.ghost ? '↑ ' : ''}{item.title}</b>
                           {height >= 36 && <span class="tl-time">{fmtRange(item.start, item.end)}</span>}

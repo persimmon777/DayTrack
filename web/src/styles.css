@@ -134,7 +134,7 @@ progress::-moz-progress-bar { background: var(--accent); }
 .timeline-header { position: sticky; top: calc(env(safe-area-inset-top) + 52px); z-index: 5; display: flex; gap: 6px; padding: 8px 0; background: var(--card); font-weight: 600; font-size: 14px; }
 .timeline-header .gutter { width: 34px; }
 .timeline-header .col-title { flex: 1; text-align: center; }
-.timeline { position: relative; }
+.timeline { position: relative; margin-top: 8px; }
 .hour { position: absolute; left: 0; right: 0; border-top: 0.5px solid var(--sep); }
 .hour-label { position: absolute; left: 0; top: -7px; width: 34px; font-size: 10px; color: var(--muted); background: var(--card); font-variant-numeric: tabular-nums; }
 .columns { position: absolute; inset: 0 0 0 40px; display: flex; gap: 6px; }
