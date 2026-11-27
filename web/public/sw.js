@@ -1,8 +1,16 @@
-// Офлайн-режим: приложение открывается без интернета.
-const CACHE = 'daytrack-v1'
+// Офлайн-режим: приложение открывается без интернета уже после первого запуска.
+const CACHE = 'daytrack-v2'
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png']
 
+// При установке сохраняются страница и все файлы, на которые она ссылается (код и стили).
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png'])))
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE)
+    await cache.addAll(SHELL)
+    const html = await (await fetch('./index.html', { cache: 'no-store' })).text()
+    const assets = [...html.matchAll(/(?:src|href)="(\.?\/?assets\/[^"]+)"/g)].map((m) => m[1])
+    await cache.addAll(assets)
+  })())
   self.skipWaiting()
 })
 
@@ -11,17 +19,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Сначала сеть (чтобы получать обновления), при её отсутствии — сохранённая копия.
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || new URL(event.request.url).origin !== location.origin) return
+  const request = event.request
+  if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return
+  const url = new URL(request.url)
+  // Файлы сборки с хешем в имени не меняются: сначала из сохранённого.
+  if (url.pathname.includes('/assets/')) {
+    event.respondWith(caches.match(request, { ignoreVary: true, ignoreSearch: true }).then((hit) => hit || fetch(request).then((response) => {
+      const copy = response.clone()
+      caches.open(CACHE).then((c) => c.put(request, copy))
+      return response
+    })))
+    return
+  }
+  // Страница и прочее: сначала сеть (чтобы получать обновления), без сети — сохранённая копия.
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
         const copy = response.clone()
-        caches.open(CACHE).then((c) => c.put(event.request, copy))
+        caches.open(CACHE).then((c) => c.put(request, copy))
         return response
       })
-      .catch(() => caches.match(event.request).then((r) => r || caches.match('./index.html')))
+      .catch(() => caches.match(request, { ignoreVary: true }).then((r) => r || caches.match('./index.html', { ignoreVary: true })))
   )
 })
 
