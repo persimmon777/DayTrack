@@ -4,12 +4,16 @@ import { calendarEntries, dayFill, fillBackground } from '../data/calendar'
 import { openSheet, closeSheet, Sheet } from './sheets'
 import { BlockEditor, BlockDetail } from './sheets/editors'
 import { ReminderEditor } from './sheets/more'
+import { useSwipe } from './swipe'
 import { DayKey, fmtDayLong, fmtMonth, fmtTime, resolve, todayKey, windowOf } from '../core/time'
 import { daysIn, periodRange, shiftPeriod } from '../core/periods'
 
 /** Календарь месяца: день закрашен цветами категорий запланированного, в клетке — время самого раннего дела. */
 export function CalendarTab(props: { onOpenDay: (k: DayKey) => void }) {
   const [month, setMonth] = useState(todayKey())
+  const [dir, setDir] = useState<'next' | 'prev' | ''>('')
+  const go = (steps: number) => { setDir(steps > 0 ? 'next' : 'prev'); setMonth((m) => shiftPeriod(m, 'month', steps)) }
+  const swipe = useSwipe(() => go(-1), () => go(1))
   const range = periodRange('month', month)
   const keys = daysIn(range)
   const today = todayKey()
@@ -23,15 +27,15 @@ export function CalendarTab(props: { onOpenDay: (k: DayKey) => void }) {
   return (
     <div class="tab">
       <header class="topbar">
-        <button class="icon-btn" aria-label="Предыдущий месяц" onClick={() => setMonth(shiftPeriod(month, 'month', -1))}>‹</button>
+        <button class="icon-btn" aria-label="Предыдущий месяц" onClick={() => go(-1)}>‹</button>
         <span class="day-title">{fmtMonth(month)}</span>
         <div class="topbar-right">
-          {!isCurrent && <button class="link small" onClick={() => setMonth(today)}>Сегодня</button>}
-          <button class="icon-btn" aria-label="Следующий месяц" onClick={() => setMonth(shiftPeriod(month, 'month', 1))}>›</button>
+          {!isCurrent && <button class="link small" onClick={() => { setDir(today > month ? 'next' : 'prev'); setMonth(today) }}>Сегодня</button>}
+          <button class="icon-btn" aria-label="Следующий месяц" onClick={() => go(1)}>›</button>
         </div>
       </header>
-      <div class="content">
-        <div class="mcal">
+      <div class="content swipe-area" {...swipe}>
+        <div class={`mcal slide-${dir}`} key={range[0]}>
           {['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map((w) => <span class="cal-wd">{w}</span>)}
           {Array.from({ length: blanks }, () => <span />)}
           {cells.map(({ k, entries, fill }) => {
@@ -50,7 +54,7 @@ export function CalendarTab(props: { onOpenDay: (k: DayKey) => void }) {
             )
           })}
         </div>
-        <p class="muted small pad">Цвет дня — категории запланированных дел, по доле времени. В клетке — начало самого раннего дела. Сон в заливку не входит.</p>
+        <p class="muted small pad">Цвет дня — категории запланированных дел, по доле времени. В клетке — начало самого раннего дела. Сон в заливку не входит. Месяцы листаются свайпом влево и вправо.</p>
       </div>
     </div>
   )

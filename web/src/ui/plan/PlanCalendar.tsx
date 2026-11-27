@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import * as S from '../../data/store'
 import { openSheet } from '../sheets'
+import { useSwipe } from '../swipe'
 import { BlockEditor } from '../sheets/editors'
 import { ReminderEditor } from '../sheets/more'
 import { DayKey, fmtDay, fmtMonth, fmtTime, resolve, todayKey, windowOf } from '../../core/time'
@@ -23,6 +24,9 @@ function entries(key: DayKey): Entry[] {
 export function PlanCalendar(props: { dayKey: DayKey; onOpenDay: (k: DayKey) => void; onClose: () => void }) {
   const [month, setMonth] = useState(props.dayKey)
   const [selected, setSelected] = useState(props.dayKey)
+  const [dir, setDir] = useState<'next' | 'prev' | ''>('')
+  const go = (steps: number) => { setDir(steps > 0 ? 'next' : 'prev'); setMonth((m) => shiftPeriod(m, 'month', steps)) }
+  const swipe = useSwipe(() => go(-1), () => go(1))
   useEffect(() => window.scrollTo(0, 0), [])
   const range = periodRange('month', month)
   const keys = daysIn(range)
@@ -39,12 +43,12 @@ export function PlanCalendar(props: { dayKey: DayKey; onOpenDay: (k: DayKey) => 
         <button class="link" onClick={props.onClose}>Закрыть</button>
         <span class="day-title">{fmtMonth(month)}</span>
         <div class="topbar-right">
-          <button class="icon-btn" onClick={() => setMonth(shiftPeriod(month, 'month', -1))}>‹</button>
-          <button class="icon-btn" onClick={() => setMonth(shiftPeriod(month, 'month', 1))}>›</button>
+          <button class="icon-btn" onClick={() => go(-1)}>‹</button>
+          <button class="icon-btn" onClick={() => go(1)}>›</button>
         </div>
       </header>
       <div class="content">
-        <div class="cal-grid">
+        <div class={`cal-grid swipe-area slide-${dir}`} key={range[0]} {...swipe}>
           {['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map((w) => <span class="cal-wd">{w}</span>)}
           {Array.from({ length: blanks }, () => <span />)}
           {keys.map((k) => {

@@ -266,6 +266,13 @@ progress::-moz-progress-bar { background: var(--accent); }
 .popup-mark { width: 14px; flex: none; text-align: center; }
 .popup-time { color: var(--muted); min-width: 92px; }
 
+/* Перелистывание месяцев свайпом */
+.swipe-area { touch-action: pan-y; }
+.slide-next { animation: slide-next 0.22s ease-out; }
+.slide-prev { animation: slide-prev 0.22s ease-out; }
+@keyframes slide-next { from { transform: translateX(40px); opacity: 0.3; } }
+@keyframes slide-prev { from { transform: translateX(-40px); opacity: 0.3; } }
+
 /* Графики */
 .chart { width: 100%; height: auto; }
 .chart .grid { stroke: var(--sep); stroke-width: 0.5; }
