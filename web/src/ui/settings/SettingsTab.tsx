@@ -14,6 +14,7 @@ import { duration, fmtDay, fmtMinute, todayKey, addDays } from '../../core/time'
 import { palette, symbols, defaultPrompt } from '../../data/defaults'
 import { exportSnapshot, importSnapshot, summaryOf, backupFileName } from '../../data/backup'
 import { buildIcs, permission, requestPermission, notificationsSupported } from '../../data/notifications'
+import { useEdgeBack } from '../swipe'
 
 type Page = 'categories' | 'schedule' | 'templates' | 'reminders' | 'notifications' | 'target' | 'games' | 'advisor' | 'theme' | 'prompt' | 'backup' | 'install'
 const titles: Record<Page, string> = {
@@ -23,10 +24,11 @@ const titles: Record<Page, string> = {
 
 export function SettingsTab() {
   const [page, setPage] = useState<Page | null>(null)
+  const backRef = useEdgeBack(page ? () => setPage(null) : null)
   if (page) {
     const Body = pages[page]
     return (
-      <div class="tab">
+      <div class="tab" ref={backRef}>
         <header class="topbar"><button class="link" onClick={() => setPage(null)}>‹ Настройки</button><span class="day-title">{titles[page]}</span><span class="spacer" /></header>
         <div class="content"><Body /></div>
       </div>

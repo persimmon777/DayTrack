@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import * as S from '../../data/store'
 import { openSheet } from '../sheets'
-import { useSwipe } from '../swipe'
+import { useSwipe, useEdgeBack } from '../swipe'
 import { BlockEditor } from '../sheets/editors'
 import { ReminderEditor } from '../sheets/more'
 import { DayKey, fmtDay, fmtMonth, fmtTime, resolve, todayKey, windowOf } from '../../core/time'
@@ -27,6 +27,7 @@ export function PlanCalendar(props: { dayKey: DayKey; onOpenDay: (k: DayKey) => 
   const [dir, setDir] = useState<'next' | 'prev' | ''>('')
   const go = (steps: number) => { setDir(steps > 0 ? 'next' : 'prev'); setMonth((m) => shiftPeriod(m, 'month', steps)) }
   const swipe = useSwipe(() => go(-1), () => go(1))
+  const backRef = useEdgeBack(props.onClose)
   useEffect(() => window.scrollTo(0, 0), [])
   const range = periodRange('month', month)
   const keys = daysIn(range)
@@ -38,7 +39,7 @@ export function PlanCalendar(props: { dayKey: DayKey; onOpenDay: (k: DayKey) => 
     return last && last < windowOf(selected).end ? last : resolve(9, 0, selected)
   }
   return (
-    <div class="tab">
+    <div class="tab" ref={backRef}>
       <header class="topbar">
         <button class="link" onClick={props.onClose}>Закрыть</button>
         <span class="day-title">{fmtMonth(month)}</span>
