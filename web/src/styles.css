@@ -27,6 +27,11 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
+/* Без увеличения: двойное касание не приближает, текст не масштабируется сам при повороте. */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+* { touch-action: manipulation; }
+/* Поля ввода не мельче 16 px: иначе Safari приближает страницу при нажатии на поле. */
+input, select, textarea { font-size: 16px !important; }
 body { font: 16px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; overscroll-behavior-y: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 input, select, textarea { font: inherit; color: inherit; }
